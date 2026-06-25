@@ -1,6 +1,22 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+const MIN_QUESTION_LENGTH = 20;
+
+const VALID_CATEGORIES = new Set([
+  "cash",
+  "gold-dollar",
+  "tether",
+  "fund",
+  "real-estate",
+  "stock",
+  "asset-allocation",
+]);
+
+function cleanText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 export async function POST(request: Request) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -13,26 +29,63 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    let body: Record<string, unknown>;
 
-    const body = await request.json();
-
-    const questionText = String(body.question_text || "").trim();
-
-    if (!questionText) {
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { error: "متن سؤال الزامی است." },
+        { error: "درخواست نامعتبر است." },
         { status: 400 }
       );
     }
 
+    const name = cleanText(body.name);
+    const contact = cleanText(body.contact);
+    const questionText = cleanText(body.question_text);
+    const category = cleanText(body.category);
+    const amountRange = cleanText(body.amount_range);
+    const urgency = cleanText(body.urgency);
+
+    if (!name) {
+      return NextResponse.json(
+        { error: "نام الزامی است." },
+        { status: 400 }
+      );
+    }
+
+    if (!contact || contact.length < 5) {
+      return NextResponse.json(
+        { error: "شماره تماس یا ایمیل معتبر الزامی است." },
+        { status: 400 }
+      );
+    }
+
+    if (questionText.length < MIN_QUESTION_LENGTH) {
+      return NextResponse.json(
+        {
+          error: `متن سؤال باید حداقل ${MIN_QUESTION_LENGTH} کاراکتر باشد.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!VALID_CATEGORIES.has(category)) {
+      return NextResponse.json(
+        { error: "موضوع سؤال معتبر نیست." },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const { error } = await supabase.from("questions").insert({
-      name: body.name || null,
-      contact: body.contact || null,
+      name,
+      contact,
       question_text: questionText,
-      category: body.category || null,
-      amount_range: body.amount_range || null,
-      urgency: body.urgency || null,
+      category,
+      amount_range: amountRange || null,
+      urgency: urgency || null,
       status: "new",
     });
 
