@@ -14,10 +14,20 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
+function resolveFinalStatus(status: string, finalAnswer: string) {
+  const autoAnswerStatuses = ["new", "reviewing", "needs_more_info"];
+
+  if (finalAnswer && autoAnswerStatuses.includes(status)) {
+    return "answered";
+  }
+
+  return status;
+}
+
 export async function updateQuestion(formData: FormData) {
-  const id = String(formData.get("id") || "");
-  const status = String(formData.get("status") || "new");
-  const finalAnswer = String(formData.get("final_answer") || "");
+  const id = String(formData.get("id") || "").trim();
+  const status = String(formData.get("status") || "new").trim();
+  const finalAnswer = String(formData.get("final_answer") || "").trim();
   const isWealthDiagnosisCandidate =
     formData.get("is_wealth_diagnosis_candidate") === "on";
 
@@ -25,12 +35,13 @@ export async function updateQuestion(formData: FormData) {
     throw new Error("Question id is missing.");
   }
 
+  const finalStatus = resolveFinalStatus(status, finalAnswer);
   const supabase = getSupabaseAdmin();
 
   const { error } = await supabase
     .from("questions")
     .update({
-      status,
+      status: finalStatus,
       final_answer: finalAnswer || null,
       is_wealth_diagnosis_candidate: isWealthDiagnosisCandidate,
     })
@@ -41,4 +52,5 @@ export async function updateQuestion(formData: FormData) {
   }
 
   revalidatePath("/admin");
+  revalidatePath(`/answer/${id}`);
 }
