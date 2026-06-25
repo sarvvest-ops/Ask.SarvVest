@@ -93,7 +93,8 @@ function filterQuestions(questions: Question[], filter: AdminFilter) {
 
   if (filter === "wealth_diagnosis") {
     return questions.filter(
-      (q) => q.is_wealth_diagnosis_candidate || q.status === "diagnosis_candidate"
+      (q) =>
+        q.is_wealth_diagnosis_candidate || q.status === "diagnosis_candidate",
     );
   }
 
@@ -147,9 +148,9 @@ export default async function AdminPage({
 }: {
   searchParams?: Promise<{ status?: string }>;
 }) {
-    const params = searchParams ? await searchParams : {};
+  const params = searchParams ? await searchParams : {};
   const activeFilter = getActiveFilter(params.status);
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
@@ -183,42 +184,42 @@ export default async function AdminPage({
   const questions = (data || []) as Question[];
 
   const stats = [
-  {
-    label: "کل سؤال‌ها",
-    value: questions.length,
-    hint: "همه درخواست‌های ثبت‌شده",
-  },
-  {
-    label: "جدید",
-    value: questions.filter((q) => q.status === "new").length,
-    hint: "هنوز بررسی نشده",
-  },
-  {
-    label: "در حال بررسی",
-    value: questions.filter((q) => q.status === "reviewing").length,
-    hint: "در صف پاسخ‌دهی",
-  },
-  {
-    label: "نیازمند اطلاعات",
-    value: questions.filter((q) => q.status === "needs_more_info").length,
-    hint: "باید از کاربر سؤال تکمیلی بگیریم",
-  },
-  {
-    label: "پاسخ داده‌شده",
-    value: questions.filter((q) => q.status === "answered").length,
-    hint: "پاسخ آماده شده",
-  },
-  {
-    label: "ارسال‌شده",
-    value: questions.filter((q) => q.status === "sent_to_user").length,
-    hint: "لینک پاسخ برای کاربر ارسال شده",
-  },
-  {
-    label: "Wealth Diagnosis",
-    value: questions.filter((q) => q.is_wealth_diagnosis_candidate).length,
-    hint: "مناسب برای بررسی تخصصی",
-  },
-];
+    {
+      label: "کل سؤال‌ها",
+      value: questions.length,
+      hint: "همه درخواست‌های ثبت‌شده",
+    },
+    {
+      label: "جدید",
+      value: questions.filter((q) => q.status === "new").length,
+      hint: "هنوز بررسی نشده",
+    },
+    {
+      label: "در حال بررسی",
+      value: questions.filter((q) => q.status === "reviewing").length,
+      hint: "در صف پاسخ‌دهی",
+    },
+    {
+      label: "نیازمند اطلاعات",
+      value: questions.filter((q) => q.status === "needs_more_info").length,
+      hint: "باید از کاربر سؤال تکمیلی بگیریم",
+    },
+    {
+      label: "پاسخ داده‌شده",
+      value: questions.filter((q) => q.status === "answered").length,
+      hint: "پاسخ آماده شده",
+    },
+    {
+      label: "ارسال‌شده",
+      value: questions.filter((q) => q.status === "sent_to_user").length,
+      hint: "لینک پاسخ برای کاربر ارسال شده",
+    },
+    {
+      label: "Wealth Diagnosis",
+      value: questions.filter((q) => q.is_wealth_diagnosis_candidate).length,
+      hint: "مناسب برای بررسی تخصصی",
+    },
+  ];
 
   const filteredQuestions = filterQuestions(questions, activeFilter);
 
@@ -244,47 +245,57 @@ export default async function AdminPage({
         </div>
 
         <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-  {stats.map((item) => (
-    <div key={item.label} className="rounded-3xl bg-white p-6 shadow-sm">
-      <p className="text-sm text-slate-500">{item.label}</p>
-      <p className="mt-2 text-3xl font-bold text-emerald-950">
-        {item.value}
-      </p>
-      <p className="mt-2 text-xs leading-6 text-slate-500">{item.hint}</p>
-    </div>
-  ))}
-</div>
+          {stats.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-3xl bg-white p-6 shadow-sm"
+            >
+              <p className="text-sm text-slate-500">{item.label}</p>
+              <p className="mt-2 text-3xl font-bold text-emerald-950">
+                {item.value}
+              </p>
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                {item.hint}
+              </p>
+            </div>
+          ))}
+        </div>
 
-<div className="mb-6 rounded-3xl bg-white p-4 shadow-sm">
-  <div className="mb-3 flex flex-col gap-1">
-    <p className="text-sm font-semibold text-emerald-950">فیلتر سؤال‌ها</p>
-    <p className="text-xs text-slate-500">
-      نمایش {filteredQuestions.length} سؤال از مجموع {questions.length} سؤال
-    </p>
-  </div>
+        <div className="mb-6 rounded-3xl bg-white p-4 shadow-sm">
+          <div className="mb-3 flex flex-col gap-1">
+            <p className="text-sm font-semibold text-emerald-950">
+              فیلتر سؤال‌ها
+            </p>
+            <p className="text-xs text-slate-500">
+              نمایش {filteredQuestions.length} سؤال از مجموع {questions.length}{" "}
+              سؤال
+            </p>
+          </div>
 
-  <div className="flex flex-wrap gap-2">
-    {FILTER_OPTIONS.map((option) => {
-      const isActive = option.value === activeFilter;
-      const href =
-        option.value === "all" ? "/admin" : `/admin?status=${option.value}`;
+          <div className="flex flex-wrap gap-2">
+            {FILTER_OPTIONS.map((option) => {
+              const isActive = option.value === activeFilter;
+              const href =
+                option.value === "all"
+                  ? "/admin"
+                  : `/admin?status=${option.value}`;
 
-      return (
-        <a
-          key={option.value}
-          href={href}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-            isActive
-              ? "bg-emerald-950 text-white"
-              : "bg-slate-50 text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          {option.label}
-        </a>
-      );
-    })}
-  </div>
-</div>
+              return (
+                <a
+                  key={option.value}
+                  href={href}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                    isActive
+                      ? "bg-emerald-950 text-white"
+                      : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {option.label}
+                </a>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="space-y-5">
           {filteredQuestions.map((q) => (
@@ -307,20 +318,20 @@ export default async function AdminPage({
                 </div>
 
                 <div className="flex flex-col items-start gap-2">
-  <span className="w-fit rounded-full bg-emerald-50 px-4 py-2 text-xs font-medium text-emerald-800">
-    {translateStatus(q.status)}
-  </span>
+                  <span className="w-fit rounded-full bg-emerald-50 px-4 py-2 text-xs font-medium text-emerald-800">
+                    {translateStatus(q.status)}
+                  </span>
 
-  <a
-    href={`/answer/${q.id}`}
-    target="_blank"
-    className="w-fit rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 hover:border-emerald-900"
-  >
-    مشاهده صفحه پاسخ
-  </a>
-  <CopyAnswerLink questionId={q.id} />
-  <CopyUserMessage questionId={q.id} name={q.name} />
-</div>
+                  <a
+                    href={`/answer/${q.id}`}
+                    target="_blank"
+                    className="w-fit rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 hover:border-emerald-900"
+                  >
+                    مشاهده صفحه پاسخ
+                  </a>
+                  <CopyAnswerLink questionId={q.id} />
+                  <CopyUserMessage questionId={q.id} name={q.name} />
+                </div>
               </div>
 
               <div className="grid gap-4 text-sm md:grid-cols-4">
@@ -393,11 +404,11 @@ export default async function AdminPage({
                 </label>
 
                 <textarea
-  name="final_answer"
-  defaultValue={q.final_answer || buildAnswerTemplate(q)}
-  placeholder="پاسخ نهایی، توضیح یا یادداشت مشاور را اینجا بنویسید..."
-  className="min-h-32 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-right leading-8 outline-none focus:border-emerald-800"
-/>
+                  name="final_answer"
+                  defaultValue={q.final_answer || buildAnswerTemplate(q)}
+                  placeholder="پاسخ نهایی، توضیح یا یادداشت مشاور را اینجا بنویسید..."
+                  className="min-h-32 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-right leading-8 outline-none focus:border-emerald-800"
+                />
               </div>
 
               <button
@@ -411,15 +422,15 @@ export default async function AdminPage({
 
           {filteredQuestions.length === 0 && (
             <div className="rounded-3xl bg-white p-10 text-center text-slate-500">
-             در این فیلتر، سؤالی برای نمایش وجود ندارد.
+              در این فیلتر، سؤالی برای نمایش وجود ندارد.
             </div>
           )}
         </div>
 
         <p className="mt-6 rounded-2xl bg-emerald-50 px-5 py-4 text-sm leading-7 text-emerald-950">
-  این پنل با Basic Auth محافظت می‌شود. برای استفاده عمومی، مقدارهای
-  ADMIN_USERNAME و ADMIN_PASSWORD باید در محیط اجرا تنظیم شده باشند.
-</p>
+          این پنل با Basic Auth محافظت می‌شود. برای استفاده عمومی، مقدارهای
+          ADMIN_USERNAME و ADMIN_PASSWORD باید در محیط اجرا تنظیم شده باشند.
+        </p>
       </div>
     </main>
   );
