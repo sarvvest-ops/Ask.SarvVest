@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const username = process.env.ADMIN_USERNAME;
   const password = process.env.ADMIN_PASSWORD;
 
@@ -13,12 +13,21 @@ export function middleware(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
 
   if (authHeader?.startsWith("Basic ")) {
-    const base64Credentials = authHeader.split(" ")[1];
-    const credentials = atob(base64Credentials);
-    const [inputUsername, inputPassword] = credentials.split(":");
+    try {
+      const base64Credentials = authHeader.split(" ")[1];
+      const credentials = atob(base64Credentials);
+      const separatorIndex = credentials.indexOf(":");
 
-    if (inputUsername === username && inputPassword === password) {
-      return NextResponse.next();
+      if (separatorIndex > -1) {
+        const inputUsername = credentials.slice(0, separatorIndex);
+        const inputPassword = credentials.slice(separatorIndex + 1);
+
+        if (inputUsername === username && inputPassword === password) {
+          return NextResponse.next();
+        }
+      }
+    } catch {
+      // Invalid Basic Auth header.
     }
   }
 
