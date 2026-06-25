@@ -69,6 +69,37 @@ function translateStatus(status: string) {
   return map[status] || status;
 }
 
+const FILTER_OPTIONS = [
+  { value: "all", label: "همه" },
+  { value: "new", label: "جدید" },
+  { value: "reviewing", label: "در حال بررسی" },
+  { value: "needs_more_info", label: "نیازمند اطلاعات" },
+  { value: "answered", label: "پاسخ داده‌شده" },
+  { value: "sent_to_user", label: "ارسال‌شده" },
+  { value: "wealth_diagnosis", label: "Wealth Diagnosis" },
+] as const;
+
+type AdminFilter = (typeof FILTER_OPTIONS)[number]["value"];
+
+function getActiveFilter(value: string | undefined): AdminFilter {
+  const isValid = FILTER_OPTIONS.some((option) => option.value === value);
+  return isValid ? (value as AdminFilter) : "all";
+}
+
+function filterQuestions(questions: Question[], filter: AdminFilter) {
+  if (filter === "all") {
+    return questions;
+  }
+
+  if (filter === "wealth_diagnosis") {
+    return questions.filter(
+      (q) => q.is_wealth_diagnosis_candidate || q.status === "diagnosis_candidate"
+    );
+  }
+
+  return questions.filter((q) => q.status === filter);
+}
+
 function buildAnswerTemplate(q: Question) {
   return `۱. پاسخ کوتاه
 با توجه به سؤال شما، این تصمیم بدون دانستن هدف، افق زمانی، نیاز نقدینگی و ترکیب فعلی دارایی قابل پاسخ قطعی نیست. اما می‌توان چارچوب تصمیم را بررسی کرد.
@@ -111,8 +142,14 @@ function buildAnswerTemplate(q: Question) {
 اگر این تصمیم بخش قابل توجهی از دارایی شما را درگیر می‌کند، بهتر است بررسی تخصصی‌تر Wealth Diagnosis انجام شود.`;
 }
 
-export default async function AdminPage() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ status?: string }>;
+}) {
+    const params = searchParams ? await searchParams : {};
+  const activeFilter = getActiveFilter(params.status);
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
@@ -183,6 +220,8 @@ export default async function AdminPage() {
   },
 ];
 
+  const filteredQuestions = filterQuestions(questions, activeFilter);
+
   return (
     <main dir="rtl" className="min-h-screen bg-slate-50 p-8 text-slate-900">
       <div className="mx-auto max-w-7xl">
@@ -216,8 +255,39 @@ export default async function AdminPage() {
   ))}
 </div>
 
+<div className="mb-6 rounded-3xl bg-white p-4 shadow-sm">
+  <div className="mb-3 flex flex-col gap-1">
+    <p className="text-sm font-semibold text-emerald-950">فیلتر سؤال‌ها</p>
+    <p className="text-xs text-slate-500">
+      نمایش {filteredQuestions.length} سؤال از مجموع {questions.length} سؤال
+    </p>
+  </div>
+
+  <div className="flex flex-wrap gap-2">
+    {FILTER_OPTIONS.map((option) => {
+      const isActive = option.value === activeFilter;
+      const href =
+        option.value === "all" ? "/admin" : `/admin?status=${option.value}`;
+
+      return (
+        <a
+          key={option.value}
+          href={href}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            isActive
+              ? "bg-emerald-950 text-white"
+              : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+          }`}
+        >
+          {option.label}
+        </a>
+      );
+    })}
+  </div>
+</div>
+
         <div className="space-y-5">
-          {questions.map((q) => (
+          {filteredQuestions.map((q) => (
             <form
               key={q.id}
               action={updateQuestion}
@@ -339,9 +409,9 @@ export default async function AdminPage() {
             </form>
           ))}
 
-          {questions.length === 0 && (
+          {filteredQuestions.length === 0 && (
             <div className="rounded-3xl bg-white p-10 text-center text-slate-500">
-              هنوز سؤالی ثبت نشده است.
+             در این فیلتر، سؤالی برای نمایش وجود ندارد.
             </div>
           )}
         </div>
