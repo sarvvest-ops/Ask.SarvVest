@@ -14,52 +14,85 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    setLoading(true);
-    setMessage("");
-    setIsError(false);
+  const trimmedName = name.trim();
+  const trimmedContact = contact.trim();
+  const trimmedQuestionText = questionText.trim();
 
-    try {
-      const response = await fetch("/api/questions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          contact,
-          question_text: questionText,
-          category,
-          amount_range: amountRange,
-          urgency,
-        }),
-      });
+  setMessage("");
+  setIsError(false);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        setIsError(true);
-        setMessage(result.error || "خطا در ثبت سؤال.");
-        return;
-      }
-
-      setMessage(
-        "سؤال شما با موفقیت ثبت شد. برای پاسخ دقیق‌تر، اطلاعات شما بررسی می‌شود."
-      );
-
-      setQuestionText("");
-      setCategory("");
-      setAmountRange("");
-      setUrgency("");
-    } catch {
-      setIsError(true);
-      setMessage("خطا در ارتباط با سرور.");
-    } finally {
-      setLoading(false);
-    }
+  if (!trimmedName) {
+    setIsError(true);
+    setMessage("لطفاً نام خود را وارد کنید.");
+    return;
   }
+
+  if (!trimmedContact || trimmedContact.length < 5) {
+    setIsError(true);
+    setMessage("لطفاً شماره تماس یا ایمیل معتبر وارد کنید.");
+    return;
+  }
+
+  if (trimmedQuestionText.length < MIN_QUESTION_LENGTH) {
+    setIsError(true);
+    setMessage(
+      `متن سؤال باید حداقل ${MIN_QUESTION_LENGTH} کاراکتر باشد تا قابل بررسی باشد.`
+    );
+    return;
+  }
+
+  if (!category) {
+    setIsError(true);
+    setMessage("لطفاً موضوع سؤال را انتخاب کنید.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const response = await fetch("/api/questions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: trimmedName,
+        contact: trimmedContact,
+        question_text: trimmedQuestionText,
+        category,
+        amount_range: amountRange,
+        urgency,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setIsError(true);
+      setMessage(result.error || "خطا در ثبت سؤال.");
+      return;
+    }
+
+    setMessage(
+      "سؤال شما با موفقیت ثبت شد. پاسخ اولیه پس از بررسی در صفحه اختصاصی شما آماده می‌شود."
+    );
+
+    setName("");
+    setContact("");
+    setQuestionText("");
+    setCategory("");
+    setAmountRange("");
+    setUrgency("");
+  } catch {
+    setIsError(true);
+    setMessage("خطا در ارتباط با سرور.");
+  } finally {
+    setLoading(false);
+  }
+}
 
   return (
     <main dir="rtl" className="min-h-screen bg-white text-slate-900">
