@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
 function getSupabaseAdmin() {
@@ -24,10 +25,24 @@ function resolveFinalStatus(status: string, finalAnswer: string) {
   return status;
 }
 
+function getSafeReturnPath(value: string) {
+  if (value === "/admin" || value.startsWith("/admin?")) {
+    return value;
+  }
+
+  return "/admin";
+}
+
+function addSavedMessage(path: string) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}saved=1`;
+}
+
 export async function updateQuestion(formData: FormData) {
   const id = String(formData.get("id") || "").trim();
   const status = String(formData.get("status") || "new").trim();
   const finalAnswer = String(formData.get("final_answer") || "").trim();
+  const returnTo = String(formData.get("return_to") || "/admin").trim();
   const isWealthDiagnosisCandidate =
     formData.get("is_wealth_diagnosis_candidate") === "on";
 
@@ -53,4 +68,7 @@ export async function updateQuestion(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath(`/answer/${id}`);
+
+  const safeReturnPath = getSafeReturnPath(returnTo);
+  redirect(addSavedMessage(safeReturnPath));
 }

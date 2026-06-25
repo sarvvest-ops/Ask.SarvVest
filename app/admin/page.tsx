@@ -146,10 +146,11 @@ function buildAnswerTemplate(q: Question) {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ status?: string }>;
+  searchParams?: Promise<{ status?: string; saved?: string }>;
 }) {
   const params = searchParams ? await searchParams : {};
   const activeFilter = getActiveFilter(params.status);
+  const saved = params.saved === "1";
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -244,6 +245,12 @@ export default async function AdminPage({
           </a>
         </div>
 
+        {saved && (
+          <div className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-sm font-medium leading-7 text-emerald-900">
+            تغییرات با موفقیت ذخیره شد و صفحه پاسخ کاربر به‌روزرسانی شد.
+          </div>
+        )}
+
         <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((item) => (
             <div
@@ -305,6 +312,16 @@ export default async function AdminPage({
               className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
             >
               <input type="hidden" name="id" value={q.id} />
+
+              <input
+                type="hidden"
+                name="return_to"
+                value={
+                  activeFilter === "all"
+                    ? "/admin"
+                    : `/admin?status=${activeFilter}`
+                }
+              />
 
               <div className="mb-5 flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-start md:justify-between">
                 <div>
