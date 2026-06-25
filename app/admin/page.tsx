@@ -145,6 +145,44 @@ export default async function AdminPage() {
 
   const questions = (data || []) as Question[];
 
+  const stats = [
+  {
+    label: "کل سؤال‌ها",
+    value: questions.length,
+    hint: "همه درخواست‌های ثبت‌شده",
+  },
+  {
+    label: "جدید",
+    value: questions.filter((q) => q.status === "new").length,
+    hint: "هنوز بررسی نشده",
+  },
+  {
+    label: "در حال بررسی",
+    value: questions.filter((q) => q.status === "reviewing").length,
+    hint: "در صف پاسخ‌دهی",
+  },
+  {
+    label: "نیازمند اطلاعات",
+    value: questions.filter((q) => q.status === "needs_more_info").length,
+    hint: "باید از کاربر سؤال تکمیلی بگیریم",
+  },
+  {
+    label: "پاسخ داده‌شده",
+    value: questions.filter((q) => q.status === "answered").length,
+    hint: "پاسخ آماده شده",
+  },
+  {
+    label: "ارسال‌شده",
+    value: questions.filter((q) => q.status === "sent_to_user").length,
+    hint: "لینک پاسخ برای کاربر ارسال شده",
+  },
+  {
+    label: "Wealth Diagnosis",
+    value: questions.filter((q) => q.is_wealth_diagnosis_candidate).length,
+    hint: "مناسب برای بررسی تخصصی",
+  },
+];
+
   return (
     <main dir="rtl" className="min-h-screen bg-slate-50 p-8 text-slate-900">
       <div className="mx-auto max-w-7xl">
@@ -166,28 +204,17 @@ export default async function AdminPage() {
           </a>
         </div>
 
-        <div className="mb-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">کل سؤال‌ها</p>
-            <p className="mt-2 text-3xl font-bold text-emerald-950">
-              {questions.length}
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">سؤال‌های جدید</p>
-            <p className="mt-2 text-3xl font-bold text-emerald-950">
-              {questions.filter((q) => q.status === "new").length}
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">کاندید Wealth Diagnosis</p>
-            <p className="mt-2 text-3xl font-bold text-emerald-950">
-              {questions.filter((q) => q.is_wealth_diagnosis_candidate).length}
-            </p>
-          </div>
-        </div>
+        <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+  {stats.map((item) => (
+    <div key={item.label} className="rounded-3xl bg-white p-6 shadow-sm">
+      <p className="text-sm text-slate-500">{item.label}</p>
+      <p className="mt-2 text-3xl font-bold text-emerald-950">
+        {item.value}
+      </p>
+      <p className="mt-2 text-xs leading-6 text-slate-500">{item.hint}</p>
+    </div>
+  ))}
+</div>
 
         <div className="space-y-5">
           {questions.map((q) => (
@@ -319,10 +346,10 @@ export default async function AdminPage() {
           )}
         </div>
 
-        <p className="mt-6 rounded-2xl bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-900">
-          این پنل فعلاً فقط برای تست لوکال است. قبل از انتشار عمومی، باید برای
-          مسیر /admin ورود، رمز یا احراز هویت اضافه شود.
-        </p>
+        <p className="mt-6 rounded-2xl bg-emerald-50 px-5 py-4 text-sm leading-7 text-emerald-950">
+  این پنل با Basic Auth محافظت می‌شود. برای استفاده عمومی، مقدارهای
+  ADMIN_USERNAME و ADMIN_PASSWORD باید در محیط اجرا تنظیم شده باشند.
+</p>
       </div>
     </main>
   );
