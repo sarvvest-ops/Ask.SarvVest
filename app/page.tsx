@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+
 const MIN_QUESTION_LENGTH = 20;
 
 export default function Home() {
@@ -132,17 +133,18 @@ export default function Home() {
           className="mt-10 w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-100"
         >
           <textarea
-  value={questionText}
-  onChange={(e) => setQuestionText(e.target.value)}
-  required
-  minLength={MIN_QUESTION_LENGTH}
-  placeholder="مثلاً: با ۵ میلیارد تومان نقد، بهتر است طلا بخرم، دلار نگه دارم یا وارد صندوق شوم؟"
-  className="min-h-32 w-full resize-none rounded-2xl border border-slate-200 px-5 py-4 text-right text-base leading-8 outline-none transition focus:border-emerald-800"
-/>
+          value={questionText}
+          onChange={(e) => setQuestionText(e.target.value)}
+          required
+          minLength={MIN_QUESTION_LENGTH}
+          placeholder="مثلاً: با ۵ میلیارد تومان نقد، بهتر است طلا بخرم، دلار نگه دارم یا وارد صندوق شوم؟"
+          className="min-h-32 w-full resize-none rounded-2xl border border-slate-200 px-5 py-4 text-right text-base leading-8 outline-none transition focus:border-emerald-800"
+          />
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <input
               value={name}
+              required
               onChange={(e) => setName(e.target.value)}
               placeholder="نام"
               className="rounded-2xl border border-slate-200 px-4 py-3 text-right outline-none transition focus:border-emerald-800"
@@ -150,6 +152,8 @@ export default function Home() {
 
             <input
               value={contact}
+              required
+              minLength={5}
               onChange={(e) => setContact(e.target.value)}
               placeholder="شماره تماس یا ایمیل"
               className="rounded-2xl border border-slate-200 px-4 py-3 text-right outline-none transition focus:border-emerald-800"
@@ -157,6 +161,7 @@ export default function Home() {
 
             <select
               value={category}
+              required
               onChange={(e) => setCategory(e.target.value)}
               className="rounded-2xl border border-slate-200 px-4 py-3 text-right outline-none transition focus:border-emerald-800"
             >
