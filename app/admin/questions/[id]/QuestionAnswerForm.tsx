@@ -10,58 +10,45 @@ type QuestionAnswerFormProps = {
   answerToken?: string | null;
 };
 
-const sarvVestAnswerTemplate = `۱. خلاصه تصمیم
-با توجه به اطلاعاتی که در سؤال مطرح شده، پاسخ کوتاه این است که: [جمع‌بندی تصمیم را شفاف و بدون ابهام بنویس.]
+const userFacingMarkers = [
+  "بخش دوم: متن پیشنهادی قابل ارسال به کاربر",
+  "بخش دوم: متن پیشنهادی برای کاربر",
+  "بخش دوم: متن قابل ارسال به کاربر",
+  "بخش دوم:",
+];
 
-۲. نکات کلیدی وضعیت شما
-- هدف اصلی تصمیم: [حفظ ارزش پول / رشد سرمایه / درآمد / کاهش ریسک]
-- افق زمانی تقریبی: [کوتاه‌مدت / میان‌مدت / بلندمدت]
-- سطح فوریت تصمیم: [فوری / قابل بررسی]
-- نکته مهم: [ابهام یا ریسک اصلی را بنویس.]
+function findUserFacingIndex(value: string) {
+  const matches = userFacingMarkers
+    .map((marker) => ({ marker, index: value.indexOf(marker) }))
+    .filter((item) => item.index >= 0)
+    .sort((a, b) => a.index - b.index);
 
-۳. تحلیل ریسک و ملاحظات مهم
-این تصمیم فقط بر اساس بازده احتمالی نباید گرفته شود. باید به نقدشوندگی، ریسک نوسان، ریسک تمرکز دارایی، افق زمانی و نیاز احتمالی به پول نقد توجه شود.
-
-۴. پیشنهاد عملی سرووست
-پیشنهاد من این است که: [پیشنهاد عملی و مرحله‌ای را بنویس.]
-
-برای اجرای محتاطانه‌تر می‌توانی این کار را در چند مرحله انجام دهی:
-- مرحله اول: [اقدام اول]
-- مرحله دوم: [اقدام دوم]
-- مرحله سوم: [اقدام سوم]
-
-۵. اطلاعاتی که برای پاسخ دقیق‌تر لازم است
-برای اینکه پاسخ دقیق‌تر و شخصی‌تر شود، این اطلاعات لازم است:
-- ترکیب فعلی دارایی‌ها
-- نیاز نقدینگی در ۳ تا ۱۲ ماه آینده
-- درآمد و مخارج ماهانه
-- میزان تحمل ریسک
-- هدف اصلی سرمایه‌گذاری
-
-۶. جمع‌بندی نهایی
-جمع‌بندی اینکه: [یک جمع‌بندی کوتاه، کاربردی و قابل اجرا بنویس.]
-
-یادآوری: این پاسخ بر اساس اطلاعات محدود ثبت‌شده تهیه شده و جایگزین مشاوره اختصاصی سرمایه‌گذاری، حقوقی یا مالیاتی نیست. اعتبار مشاهده این پاسخ از زمان انتشار ۳۰ روز است.`;
+  return matches[0] ?? null;
+}
 
 function extractUserFacingSection(value: string) {
   const text = value.trim();
   if (!text) return "";
 
-  const markers = [
-    "بخش دوم: متن پیشنهادی قابل ارسال به کاربر",
-    "بخش دوم: متن پیشنهادی برای کاربر",
-    "بخش دوم: متن قابل ارسال به کاربر",
-    "بخش دوم:",
-  ];
+  const match = findUserFacingIndex(text);
+  if (!match) return text;
 
-  for (const marker of markers) {
-    const index = text.indexOf(marker);
-    if (index >= 0) {
-      return text.slice(index + marker.length).trim();
-    }
-  }
+  return text.slice(match.index + match.marker.length).trim();
+}
 
-  return text;
+function extractInternalAdvisorSection(value: string) {
+  const text = value.trim();
+  if (!text) return "";
+
+  const match = findUserFacingIndex(text);
+  const internal = match ? text.slice(0, match.index).trim() : "";
+  if (!internal) return "";
+
+  return internal
+    .replace("بخش اول: تحلیل داخلی برای مشاور مالی SarvVest", "")
+    .replace("بخش اول: تحلیل داخلی برای مشاور مالی", "")
+    .replace("بخش اول:", "")
+    .trim();
 }
 
 export default function QuestionAnswerForm({
@@ -88,20 +75,6 @@ export default function QuestionAnswerForm({
     if (!publicAnswerPath) return;
     setPublicAnswerUrl(`${window.location.origin}${publicAnswerPath}`);
   }, [publicAnswerPath]);
-
-  function insertTemplate() {
-    if (finalAnswer.trim()) {
-      const shouldReplace = window.confirm(
-        "پاسخ فعلی خالی نیست. آیا می‌خواهی با قالب استاندارد جایگزین شود؟"
-      );
-
-      if (!shouldReplace) return;
-    }
-
-    setFinalAnswer(sarvVestAnswerTemplate);
-    setIsError(false);
-    setMessage("قالب پاسخ حرفه‌ای سرووست درج شد. حالا بخش‌های داخل کروشه را کامل کن.");
-  }
 
   async function buildAiPrompt() {
     setPromptLoading(true);
@@ -143,6 +116,7 @@ export default function QuestionAnswerForm({
 
   function moveAiResultToEditor() {
     const draft = extractUserFacingSection(aiResult);
+    const internalNote = extractInternalAdvisorSection(aiResult);
 
     if (!draft) {
       setIsError(true);
@@ -159,8 +133,20 @@ export default function QuestionAnswerForm({
     }
 
     setFinalAnswer(draft);
+
+    if (internalNote) {
+      const aiInternalNote = `تحلیل داخلی AI برای مشاور مالی:\n${internalNote}`;
+      setAdminNotes((current) =>
+        [current.trim(), aiInternalNote].filter(Boolean).join("\n\n---\n\n")
+      );
+    }
+
     setIsError(false);
-    setMessage("بخش دوم خروجی AI داخل ادیتور پاسخ قرار گرفت. حالا آن را به عنوان مشاور مالی ویرایش کن.");
+    setMessage(
+      internalNote
+        ? "بخش دوم داخل ادیتور پاسخ و بخش اول داخل یادداشت داخلی مشاور قرار گرفت."
+        : "بخش دوم خروجی AI داخل ادیتور پاسخ قرار گرفت. حالا آن را به عنوان مشاور مالی ویرایش کن."
+    );
   }
 
   async function handleSubmit(targetStatus: string) {
@@ -193,7 +179,7 @@ export default function QuestionAnswerForm({
       setMessage(
         targetStatus === "answered"
           ? "پاسخ ذخیره شد و برای لینک عمومی آماده است."
-          : "پیش‌نویس پاسخ ذخیره شد."
+          : "پیش‌نویس پاسخ و یادداشت داخلی ذخیره شد."
       );
     } catch {
       setIsError(true);
@@ -222,8 +208,7 @@ export default function QuestionAnswerForm({
         <div>
           <h2 className="text-2xl font-black text-emerald-950">نوشتن پاسخ</h2>
           <p className="mt-2 text-sm leading-7 text-slate-600">
-            پاسخ نهایی را اینجا بنویس. برای یکدست ماندن پاسخ‌ها، از قالب استاندارد
-            سرووست استفاده کن و بعد آن را متناسب با سؤال ویرایش کن.
+            خروجی AI فقط پیش‌نویس است. بخش قابل ارسال را بررسی، کوتاه و ویرایش کن و بعد منتشر کن.
           </p>
         </div>
 
@@ -236,7 +221,7 @@ export default function QuestionAnswerForm({
         <div className="font-black">Prompt Builder v2</div>
         <p className="mt-2 text-blue-900">
           پرامپت پرونده را بساز، در ChatGPT اجرا کن، سپس خروجی کامل AI را در همین بخش
-          وارد کن تا فقط متن قابل ارسال به کاربر وارد ادیتور پاسخ شود.
+          وارد کن. سیستم بخش اول را به یادداشت داخلی مشاور و بخش دوم را به ادیتور پاسخ منتقل می‌کند.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
@@ -269,8 +254,7 @@ export default function QuestionAnswerForm({
           خروجی کامل AI
         </label>
         <p className="mt-1 text-xs leading-6 text-blue-900">
-          خروجی کامل ChatGPT را اینجا Paste کن. سیستم فقط بخش دوم، یعنی متن قابل ارسال
-          به کاربر را وارد ادیتور پاسخ نهایی می‌کند.
+          خروجی کامل ChatGPT را اینجا Paste کن. بخش اول به یادداشت داخلی مشاور اضافه می‌شود و بخش دوم داخل ادیتور پاسخ می‌آید.
         </p>
         <textarea
           value={aiResult}
@@ -283,22 +267,7 @@ export default function QuestionAnswerForm({
           onClick={moveAiResultToEditor}
           className="mt-3 rounded-full bg-blue-950 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-900"
         >
-          انتقال بخش دوم به ادیتور پاسخ
-        </button>
-      </div>
-
-      <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-7 text-emerald-950">
-        <div className="font-black">قالب پیشنهادی پاسخ سرووست</div>
-        <p className="mt-2 text-emerald-900">
-          ساختار پیشنهادی: خلاصه تصمیم، وضعیت کاربر، ریسک‌ها، پیشنهاد عملی، اطلاعات
-          لازم برای دقت بیشتر، جمع‌بندی و یادآوری محدودیت پاسخ.
-        </p>
-        <button
-          type="button"
-          onClick={insertTemplate}
-          className="mt-3 rounded-full bg-white px-5 py-2 text-xs font-bold text-emerald-950 shadow-sm hover:bg-emerald-100"
-        >
-          درج قالب در پاسخ
+          انتقال خروجی AI به پاسخ و یادداشت مشاور
         </button>
       </div>
 
