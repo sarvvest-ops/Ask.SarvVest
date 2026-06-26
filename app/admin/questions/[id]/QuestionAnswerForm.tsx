@@ -10,6 +10,39 @@ type QuestionAnswerFormProps = {
   answerToken?: string | null;
 };
 
+const sarvVestAnswerTemplate = `۱. خلاصه تصمیم
+با توجه به اطلاعاتی که در سؤال مطرح شده، پاسخ کوتاه این است که: [جمع‌بندی تصمیم را شفاف و بدون ابهام بنویس.]
+
+۲. نکات کلیدی وضعیت شما
+- هدف اصلی تصمیم: [حفظ ارزش پول / رشد سرمایه / درآمد / کاهش ریسک]
+- افق زمانی تقریبی: [کوتاه‌مدت / میان‌مدت / بلندمدت]
+- سطح فوریت تصمیم: [فوری / قابل بررسی]
+- نکته مهم: [ابهام یا ریسک اصلی را بنویس.]
+
+۳. تحلیل ریسک و ملاحظات مهم
+این تصمیم فقط بر اساس بازده احتمالی نباید گرفته شود. باید به نقدشوندگی، ریسک نوسان، ریسک تمرکز دارایی، افق زمانی و نیاز احتمالی به پول نقد توجه شود.
+
+۴. پیشنهاد عملی سرووست
+پیشنهاد من این است که: [پیشنهاد عملی و مرحله‌ای را بنویس.]
+
+برای اجرای محتاطانه‌تر می‌توانی این کار را در چند مرحله انجام دهی:
+- مرحله اول: [اقدام اول]
+- مرحله دوم: [اقدام دوم]
+- مرحله سوم: [اقدام سوم]
+
+۵. اطلاعاتی که برای پاسخ دقیق‌تر لازم است
+برای اینکه پاسخ دقیق‌تر و شخصی‌تر شود، این اطلاعات لازم است:
+- ترکیب فعلی دارایی‌ها
+- نیاز نقدینگی در ۳ تا ۱۲ ماه آینده
+- درآمد و مخارج ماهانه
+- میزان تحمل ریسک
+- هدف اصلی سرمایه‌گذاری
+
+۶. جمع‌بندی نهایی
+جمع‌بندی اینکه: [یک جمع‌بندی کوتاه، کاربردی و قابل اجرا بنویس.]
+
+یادآوری: این پاسخ بر اساس اطلاعات محدود ثبت‌شده تهیه شده و جایگزین مشاوره اختصاصی سرمایه‌گذاری، حقوقی یا مالیاتی نیست. اعتبار مشاهده این پاسخ از زمان انتشار ۳۰ روز است.`;
+
 export default function QuestionAnswerForm({
   questionId,
   initialFinalAnswer,
@@ -31,6 +64,20 @@ export default function QuestionAnswerForm({
     if (!publicAnswerPath) return;
     setPublicAnswerUrl(`${window.location.origin}${publicAnswerPath}`);
   }, [publicAnswerPath]);
+
+  function insertTemplate() {
+    if (finalAnswer.trim()) {
+      const shouldReplace = window.confirm(
+        "پاسخ فعلی خالی نیست. آیا می‌خواهی با قالب استاندارد جایگزین شود؟"
+      );
+
+      if (!shouldReplace) return;
+    }
+
+    setFinalAnswer(sarvVestAnswerTemplate);
+    setIsError(false);
+    setMessage("قالب پاسخ حرفه‌ای سرووست درج شد. حالا بخش‌های داخل کروشه را کامل کن.");
+  }
 
   async function handleSubmit(targetStatus: string) {
     setLoading(true);
@@ -91,8 +138,8 @@ export default function QuestionAnswerForm({
         <div>
           <h2 className="text-2xl font-black text-emerald-950">نوشتن پاسخ</h2>
           <p className="mt-2 text-sm leading-7 text-slate-600">
-            پاسخ نهایی را اینجا بنویس. وقتی آماده شد، با دکمه «انتشار پاسخ» وضعیت
-            سؤال به پاسخ داده شد تغییر می‌کند.
+            پاسخ نهایی را اینجا بنویس. برای یکدست ماندن پاسخ‌ها، از قالب استاندارد
+            سرووست استفاده کن و بعد آن را متناسب با سؤال ویرایش کن.
           </p>
         </div>
 
@@ -101,12 +148,32 @@ export default function QuestionAnswerForm({
         </span>
       </div>
 
-      <label className="mt-6 block text-sm font-bold text-slate-700">پاسخ نهایی</label>
+      <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-7 text-emerald-950">
+        <div className="font-black">قالب پیشنهادی پاسخ سرووست</div>
+        <p className="mt-2 text-emerald-900">
+          ساختار پیشنهادی: خلاصه تصمیم، وضعیت کاربر، ریسک‌ها، پیشنهاد عملی، اطلاعات
+          لازم برای دقت بیشتر، جمع‌بندی و یادآوری محدودیت پاسخ.
+        </p>
+        <button
+          type="button"
+          onClick={insertTemplate}
+          className="mt-3 rounded-full bg-white px-5 py-2 text-xs font-bold text-emerald-950 shadow-sm hover:bg-emerald-100"
+        >
+          درج قالب در پاسخ
+        </button>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <label className="block text-sm font-bold text-slate-700">پاسخ نهایی</label>
+        <div className="text-xs text-slate-500">
+          قبل از انتشار، قسمت‌های داخل کروشه را حذف یا کامل کن.
+        </div>
+      </div>
       <textarea
         value={finalAnswer}
         onChange={(event) => setFinalAnswer(event.target.value)}
         placeholder="پاسخ ساختارمند سرووست را اینجا بنویس..."
-        className="mt-2 min-h-72 w-full resize-y rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-right text-base leading-8 outline-none transition focus:border-emerald-900"
+        className="mt-2 min-h-96 w-full resize-y rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-right text-base leading-8 outline-none transition focus:border-emerald-900"
       />
 
       <label className="mt-5 block text-sm font-bold text-slate-700">
