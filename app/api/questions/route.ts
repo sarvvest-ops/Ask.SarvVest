@@ -46,12 +46,19 @@ export async function POST(request: Request) {
     const category = cleanText(body.category);
     const amountRange = cleanText(body.amount_range);
     const urgency = cleanText(body.urgency);
+    const company = cleanText(body.company);
+
+    // Simple honeypot: real users never fill this hidden field.
+    // Return success without writing spam into Supabase.
+    if (company) {
+      return NextResponse.json({
+        success: true,
+        message: "سؤال با موفقیت ثبت شد.",
+      });
+    }
 
     if (!name) {
-      return NextResponse.json(
-        { error: "نام الزامی است." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "نام الزامی است." }, { status: 400 });
     }
 
     if (!contact || contact.length < 5) {
@@ -90,10 +97,7 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -101,9 +105,6 @@ export async function POST(request: Request) {
       message: "سؤال با موفقیت ثبت شد.",
     });
   } catch {
-    return NextResponse.json(
-      { error: "خطا در ثبت سؤال." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "خطا در ثبت سؤال." }, { status: 500 });
   }
 }
