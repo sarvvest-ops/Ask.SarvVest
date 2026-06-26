@@ -27,87 +27,95 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* SarvVest Ask brand mark */
+/* Home page header logo */
 body > main > header > div {
-  position: relative;
-  min-height: calc(var(--sarvvest-logo-height) + 24px);
+  position: relative !important;
+  min-height: calc(var(--sarvvest-logo-height) + 24px) !important;
+  justify-content: flex-start !important;
 }
 
 body > main > header > div > div:first-child {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  min-height: var(--sarvvest-logo-height);
-  width: var(--sarvvest-logo-width);
-  transform: translate(-50%, -50%);
-  background-image: url("/SarvVest_Ask_Logo_NoBackground.webp");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  min-height: var(--sarvvest-logo-height) !important;
+  width: var(--sarvvest-logo-width) !important;
+  transform: translate(-50%, -50%) !important;
+  background-color: transparent !important;
+  background-image: url("/SarvVest_Ask_Logo_NoBackground.webp") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
 }
 
 body > main > header > div > div:first-child > * {
-  display: none;
+  display: none !important;
 }
 
 body > main > header > div > nav {
-  position: absolute;
-  top: 50%;
-  left: 1.5rem;
-  transform: translateY(-50%);
+  position: absolute !important;
+  top: 50% !important;
+  left: 1.5rem !important;
+  transform: translateY(-50%) !important;
 }
 
+/* Public answer page logo */
 header.text-center > div:first-child {
-  height: var(--sarvvest-logo-height);
-  width: var(--sarvvest-logo-width);
-  border-radius: 0;
-  background-color: transparent;
-  background-image: url("/SarvVest_Ask_Logo_NoBackground.webp");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  color: transparent;
+  height: var(--sarvvest-logo-height) !important;
+  width: var(--sarvvest-logo-width) !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url("/SarvVest_Ask_Logo_NoBackground.webp") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+  color: transparent !important;
 }
 
+header.text-center > div:first-child > * {
+  display: none !important;
+}
+
+/* Admin pages: centered logo, no title copy, no stat cards */
 .mx-auto.max-w-7xl > header,
 .mx-auto.max-w-6xl > header.mb-7 {
-  position: relative;
-  padding-top: calc(var(--sarvvest-logo-height) + 18px);
+  position: relative !important;
+  min-height: calc(var(--sarvvest-logo-height) + 26px) !important;
+  padding-top: calc(var(--sarvvest-logo-height) + 18px) !important;
 }
 
 .mx-auto.max-w-7xl > header::before,
 .mx-auto.max-w-6xl > header.mb-7::before {
-  content: "";
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: var(--sarvvest-logo-width);
-  height: var(--sarvvest-logo-height);
-  transform: translateX(-50%);
-  background-image: url("/SarvVest_Ask_Logo_NoBackground.webp");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 50% !important;
+  width: var(--sarvvest-logo-width) !important;
+  height: var(--sarvvest-logo-height) !important;
+  transform: translateX(-50%) !important;
+  background-image: url("/SarvVest_Ask_Logo_NoBackground.webp") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
 }
 
 .mx-auto.max-w-7xl > header > div:first-child > h1,
 .mx-auto.max-w-7xl > header > div:first-child > p {
-  display: none;
+  display: none !important;
 }
 
-/* Admin header: replace the stat cards with the account tabs */
 .mx-auto.max-w-7xl > header > div:nth-child(2) {
-  display: none;
+  display: none !important;
 }
 
 .mx-auto.max-w-7xl > header > div:first-child {
-  margin-right: auto;
-  align-self: flex-start;
+  margin-right: auto !important;
+  align-self: flex-start !important;
 }
 
 .mx-auto.max-w-7xl > header > div:first-child > div:first-child {
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: flex-start;
+  display: flex !important;
+  flex-direction: row-reverse !important;
+  justify-content: flex-start !important;
 }
