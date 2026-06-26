@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" role="img" aria-label="SarvVest Ask logo">
+  <defs>
+    <style>
+      .green { fill:#004b37; stroke:#002f24; stroke-width:2; }
+      .branch { fill:none; stroke:#004b37; stroke-width:10; stroke-linecap:round; stroke-linejoin:round; }
+      .gold { stroke:#bf8f37; stroke-width:6; stroke-linecap:round; }
+      .ask { fill:#004b37; font-family:Arial, Helvetica, sans-serif; font-weight:700; font-size:150px; letter-spacing:-7px; }
+    </style>
+  </defs>
+  <g transform="translate(35 12)">
+    <g class="branch">
+<path d="M180 250 C180 205 180 160 180 85"/>
+<path d="M180 168 C150 145 125 128 95 112"/>
+<path d="M180 168 C210 145 235 128 265 112"/>
+<path d="M178 135 C150 115 128 95 110 72"/>
+<path d="M182 135 C210 115 232 95 250 72"/>
+<path d="M180 205 C145 195 112 185 75 165"/>
+<path d="M180 205 C215 195 248 185 285 165"/>
+<path d="M180 232 C145 228 105 222 60 205"/>
+<path d="M180 232 C215 228 255 222 300 205"/>
+</g>
+    <g class="green"><ellipse cx="180" cy="40" rx="13" ry="26" transform="rotate(0 180 40)"/><ellipse cx="150" cy="62" rx="11" ry="23" transform="rotate(-25 150 62)"/><ellipse cx="210" cy="62" rx="11" ry="23" transform="rotate(25 210 62)"/><ellipse cx="125" cy="92" rx="11" ry="22" transform="rotate(-45 125 92)"/><ellipse cx="235" cy="92" rx="11" ry="22" transform="rotate(45 235 92)"/><ellipse cx="160" cy="100" rx="10" ry="22" transform="rotate(-15 160 100)"/><ellipse cx="200" cy="100" rx="10" ry="22" transform="rotate(15 200 100)"/><ellipse cx="100" cy="125" rx="10" ry="21" transform="rotate(-55 100 125)"/><ellipse cx="260" cy="125" rx="10" ry="21" transform="rotate(55 260 125)"/><ellipse cx="135" cy="135" rx="10" ry="22" transform="rotate(-35 135 135)"/><ellipse cx="225" cy="135" rx="10" ry="22" transform="rotate(35 225 135)"/><ellipse cx="165" cy="145" rx="9" ry="20" transform="rotate(-10 165 145)"/><ellipse cx="195" cy="145" rx="9" ry="20" transform="rotate(10 195 145)"/><ellipse cx="80" cy="160" rx="10" ry="20" transform="rotate(-70 80 160)"/><ellipse cx="280" cy="160" rx="10" ry="20" transform="rotate(70 280 160)"/><ellipse cx="112" cy="170" rx="10" ry="21" transform="rotate(-50 112 170)"/><ellipse cx="248" cy="170" rx="10" ry="21" transform="rotate(50 248 170)"/><ellipse cx="145" cy="180" rx="10" ry="21" transform="rotate(-30 145 180)"/><ellipse cx="215" cy="180" rx="10" ry="21" transform="rotate(30 215 180)"/><ellipse cx="175" cy="192" rx="9" ry="18" transform="rotate(-5 175 192)"/><ellipse cx="68" cy="205" rx="9" ry="19" transform="rotate(-82 68 205)"/><ellipse cx="292" cy="205" rx="9" ry="19" transform="rotate(82 292 205)"/><ellipse cx="102" cy="215" rx="10" ry="20" transform="rotate(-65 102 215)"/><ellipse cx="258" cy="215" rx="10" ry="20" transform="rotate(65 258 215)"/><ellipse cx="138" cy="222" rx="10" ry="20" transform="rotate(-42 138 222)"/><ellipse cx="222" cy="222" rx="10" ry="20" transform="rotate(42 222 222)"/><ellipse cx="172" cy="228" rx="9" ry="18" transform="rotate(-12 172 228)"/><ellipse cx="188" cy="228" rx="9" ry="18" transform="rotate(12 188 228)"/></g>
+    <path class="green" d="M154 252 C154 215 164 205 180 205 C196 205 206 215 206 252 L206 265 L154 265 Z"/>
+    <path class="green" d="M20 272 C110 252 250 252 340 272 C230 264 130 264 20 272 Z"/>
+  </g>
+  <line class="gold" x1="380" y1="42" x2="380" y2="258"/>
+  <text class="ask" x="470" y="205">ask</text>
+</svg>
