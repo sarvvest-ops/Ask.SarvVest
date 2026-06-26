@@ -215,7 +215,7 @@ export default async function AdminQuestionsPage({
   ).length;
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#f7f7f3] px-5 py-8 text-slate-900">
+    <main dir="rtl" className="min-h-screen bg-[#f7f7f3] px-4 py-8 text-slate-900 md:px-5">
       <div className="mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -292,11 +292,11 @@ export default async function AdminQuestionsPage({
 
         <section className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-right text-sm">
+            <table className="min-w-[1180px] border-collapse text-right text-sm">
               <thead className="bg-emerald-950 text-white">
                 <tr>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">عملیات</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">لینک پاسخ</th>
+                  <th className="w-40 whitespace-nowrap px-5 py-4 font-bold">عملیات</th>
+                  <th className="w-[360px] px-5 py-4 font-bold">سؤال اصلی</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">تاریخ</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">کاربر</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">موضوع</th>
@@ -305,13 +305,12 @@ export default async function AdminQuestionsPage({
                   <th className="whitespace-nowrap px-5 py-4 font-bold">مسیر بررسی</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">وضعیت</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">اعتبار پاسخ</th>
-                  <th className="min-w-96 px-5 py-4 font-bold">متن سؤال</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredQuestions.length === 0 && !error ? (
                   <tr>
-                    <td colSpan={11} className="px-5 py-10 text-center text-slate-500">
+                    <td colSpan={10} className="px-5 py-10 text-center text-slate-500">
                       موردی با این فیلتر پیدا نشد.
                     </td>
                   </tr>
@@ -322,30 +321,33 @@ export default async function AdminQuestionsPage({
                       className="border-b border-slate-100 align-top last:border-b-0 hover:bg-slate-50"
                     >
                       <td className="whitespace-nowrap px-5 py-4">
-                        {question.id ? (
-                          <a
-                            href={`/admin/questions/${question.id}`}
-                            className="rounded-full bg-emerald-950 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-900"
-                          >
-                            مشاهده / پاسخ
-                          </a>
-                        ) : (
-                          "—"
-                        )}
+                        <div className="flex flex-col gap-2">
+                          {question.id ? (
+                            <a
+                              href={`/admin/questions/${question.id}`}
+                              className="rounded-full bg-emerald-950 px-4 py-2 text-center text-xs font-bold text-white hover:bg-emerald-900"
+                            >
+                              مشاهده / پاسخ
+                            </a>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                          {isAnswered(question) && question.answer_token ? (
+                            <a
+                              href={`/answers/${question.answer_token}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-center text-xs font-bold text-emerald-800 hover:bg-emerald-50"
+                            >
+                              باز کردن پاسخ
+                            </a>
+                          ) : null}
+                        </div>
                       </td>
-                      <td className="whitespace-nowrap px-5 py-4">
-                        {isAnswered(question) && question.answer_token ? (
-                          <a
-                            href={`/answers/${question.answer_token}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-50"
-                          >
-                            باز کردن
-                          </a>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
+                      <td className="px-5 py-4 leading-7 text-slate-700">
+                        <pre className="max-h-24 max-w-sm overflow-hidden whitespace-pre-wrap break-words font-sans text-sm">
+                          {question.question_text || "—"}
+                        </pre>
                       </td>
                       <td className="whitespace-nowrap px-5 py-4 text-slate-500">
                         {formatDate(question.created_at)}
@@ -381,11 +383,6 @@ export default async function AdminQuestionsPage({
                       </td>
                       <td className="whitespace-nowrap px-5 py-4 text-slate-600">
                         {getExpiryLabel(question)}
-                      </td>
-                      <td className="px-5 py-4 leading-7 text-slate-700">
-                        <pre className="max-w-xl whitespace-pre-wrap break-words font-sans">
-                          {question.question_text || "—"}
-                        </pre>
                       </td>
                     </tr>
                   ))

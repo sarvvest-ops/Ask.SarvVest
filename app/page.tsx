@@ -234,30 +234,32 @@ export default function Home() {
 
   return (
     <main dir="rtl" className="min-h-screen bg-[#fbfbf8] text-slate-900">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-950 text-sm font-bold text-white">
-            SV
-          </div>
-          <div>
-            <div className="text-lg font-semibold tracking-tight text-emerald-950">
-              Ask SarvVest
+      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-[#fbfbf8]/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-950 text-sm font-bold text-white">
+              SV
             </div>
-            <div className="text-xs text-slate-500">Financial Decision System</div>
+            <div>
+              <div className="text-lg font-semibold tracking-tight text-emerald-950">
+                Ask SarvVest
+              </div>
+              <div className="text-xs text-slate-500">Financial Decision System</div>
+            </div>
           </div>
-        </div>
 
-        <nav className="hidden items-center gap-7 text-sm text-slate-600 md:flex">
-          <a href="#how" className="hover:text-emerald-950">
-            نحوه کار
-          </a>
-          <a href="#for-who" className="hover:text-emerald-950">
-            مناسب چه کسانی؟
-          </a>
-          <a href="/admin/questions" className="hover:text-emerald-950">
-            پنل ادمین
-          </a>
-        </nav>
+          <nav className="hidden items-center gap-7 text-sm text-slate-600 md:flex">
+            <a href="#how" className="hover:text-emerald-950">
+              نحوه کار
+            </a>
+            <a href="#for-who" className="hover:text-emerald-950">
+              مناسب چه کسانی؟
+            </a>
+            <a href="/admin/questions" className="hover:text-emerald-950">
+              پنل ادمین
+            </a>
+          </nav>
+        </div>
       </header>
 
       <section className="mx-auto flex max-w-5xl flex-col items-center justify-center px-6 pb-16 pt-10 text-center">
@@ -521,7 +523,7 @@ export default function Home() {
         </form>
       </section>
 
-      <section id="how" className="border-y border-slate-200 bg-white px-6 py-16">
+      <section id="how" className="border-y border-slate-200 bg-white px-6 py-16 scroll-mt-24">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-2xl font-black text-emerald-950 md:text-3xl">
@@ -552,7 +554,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="for-who" className="px-6 py-16">
+      <section id="for-who" className="px-6 py-16 scroll-mt-24">
         <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-4">
           {[
             ["نقدینگی آزاد", "برای کسانی که نمی‌دانند پول نقد را نگه دارند یا تبدیل کنند."],
