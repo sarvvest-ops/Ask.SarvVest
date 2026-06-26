@@ -10,6 +10,7 @@ type PublicAnswerRow = {
   status?: string | null;
   final_answer?: string | null;
   answered_at?: string | null;
+  answer_expires_at?: string | null;
 };
 
 const categoryLabels: Record<string, string> = {
@@ -35,6 +36,11 @@ function formatDate(value?: string | null) {
   }
 }
 
+function isPast(value?: string | null) {
+  if (!value) return false;
+  return new Date(value).getTime() < Date.now();
+}
+
 async function getAnswer(token: string) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -50,7 +56,9 @@ async function getAnswer(token: string) {
 
   const { data, error } = await supabase
     .from("questions")
-    .select("created_at, name, question_text, category, status, final_answer, answered_at")
+    .select(
+      "created_at, name, question_text, category, status, final_answer, answered_at, answer_expires_at"
+    )
     .eq("answer_token", token)
     .single();
 
@@ -82,7 +90,9 @@ export default async function PublicAnswerPage({
     );
   }
 
-  const isReady = answer.status === "answered" && Boolean(answer.final_answer);
+  const expired = isPast(answer.answer_expires_at);
+  const isReady =
+    answer.status === "answered" && Boolean(answer.final_answer) && !expired;
 
   return (
     <main dir="rtl" className="min-h-screen bg-[#fbfbf8] px-5 py-10 text-slate-900">
@@ -101,7 +111,7 @@ export default async function PublicAnswerPage({
         </header>
 
         <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:p-7">
-          <div className="grid gap-3 text-sm md:grid-cols-3">
+          <div className="grid gap-3 text-sm md:grid-cols-4">
             <div className="rounded-2xl bg-slate-50 p-4">
               <div className="text-xs font-bold text-slate-500">موضوع</div>
               <div className="mt-1 font-bold text-emerald-950">
@@ -116,6 +126,10 @@ export default async function PublicAnswerPage({
               <div className="text-xs font-bold text-slate-500">تاریخ پاسخ</div>
               <div className="mt-1">{formatDate(answer.answered_at)}</div>
             </div>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="text-xs font-bold text-slate-500">اعتبار تا</div>
+              <div className="mt-1">{formatDate(answer.answer_expires_at)}</div>
+            </div>
           </div>
 
           <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-5">
@@ -125,9 +139,21 @@ export default async function PublicAnswerPage({
             </pre>
           </div>
 
-          {isReady ? (
+          {expired ? (
+            <div className="mt-5 rounded-3xl border border-red-200 bg-red-50 p-5 text-red-700">
+              <div className="font-black">مهلت مشاهده این پاسخ به پایان رسیده است</div>
+              <p className="mt-3 leading-8">
+                پاسخ‌های Ask SarvVest از زمان انتشار به مدت ۳۰ روز قابل مشاهده
+                هستند و پس از آن به‌صورت خودکار از دسترس خارج می‌شوند.
+              </p>
+            </div>
+          ) : isReady ? (
             <div className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
               <div className="text-lg font-black text-emerald-950">پاسخ نهایی</div>
+              <p className="mt-3 rounded-2xl bg-white/70 px-4 py-3 text-sm leading-7 text-emerald-950">
+                این پاسخ از زمان انتشار به مدت ۳۰ روز قابل مشاهده است و پس از آن
+                به‌صورت خودکار حذف می‌شود.
+              </p>
               <pre className="mt-4 whitespace-pre-wrap break-words font-sans text-base leading-9 text-emerald-950">
                 {answer.final_answer}
               </pre>
