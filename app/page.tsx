@@ -71,6 +71,18 @@ const riskOptions = [
   ["high", "زیاد"],
 ] as const;
 
+const liquidityOptions = [
+  ["high", "زیاد؛ شاید زود به پول نیاز داشته باشم"],
+  ["medium", "متوسط؛ بخشی از پول باید نقد بماند"],
+  ["low", "کم؛ فعلاً نیاز فوری به پول نقد ندارم"],
+] as const;
+
+const experienceOptions = [
+  ["beginner", "تازه‌کار"],
+  ["intermediate", "متوسط"],
+  ["advanced", "حرفه‌ای"],
+] as const;
+
 const labels: Record<string, string> = Object.fromEntries([
   ...categoryOptions,
   ...amountOptions,
@@ -78,6 +90,8 @@ const labels: Record<string, string> = Object.fromEntries([
   ...goalOptions,
   ...horizonOptions,
   ...riskOptions,
+  ...liquidityOptions,
+  ...experienceOptions,
 ]);
 
 export default function Home() {
@@ -87,9 +101,15 @@ export default function Home() {
   const [category, setCategory] = useState("");
   const [amountRange, setAmountRange] = useState("");
   const [urgency, setUrgency] = useState("");
-  const [goal, setGoal] = useState("");
-  const [horizon, setHorizon] = useState("");
+  const [financialGoal, setFinancialGoal] = useState("");
+  const [timeHorizon, setTimeHorizon] = useState("");
   const [riskTolerance, setRiskTolerance] = useState("");
+  const [liquidityNeed, setLiquidityNeed] = useState("");
+  const [currentAssets, setCurrentAssets] = useState("");
+  const [monthlyIncome, setMonthlyIncome] = useState("");
+  const [monthlyExpense, setMonthlyExpense] = useState("");
+  const [investmentExperience, setInvestmentExperience] = useState("");
+  const [investmentConstraints, setInvestmentConstraints] = useState("");
   const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -97,14 +117,15 @@ export default function Home() {
 
   const characterCount = questionText.trim().length;
 
-  const decisionSummary = useMemo(
+  const profileSummary = useMemo(
     () =>
       [
-        goal ? `هدف تصمیم: ${labels[goal]}` : "",
-        horizon ? `افق زمانی: ${labels[horizon]}` : "",
-        riskTolerance ? `تحمل ریسک: ${labels[riskTolerance]}` : "",
+        financialGoal ? `هدف: ${labels[financialGoal]}` : "",
+        timeHorizon ? `افق زمانی: ${labels[timeHorizon]}` : "",
+        riskTolerance ? `ریسک‌پذیری: ${labels[riskTolerance]}` : "",
+        liquidityNeed ? `نیاز نقدینگی: ${labels[liquidityNeed]}` : "",
       ].filter(Boolean),
-    [goal, horizon, riskTolerance]
+    [financialGoal, timeHorizon, riskTolerance, liquidityNeed]
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -131,9 +152,7 @@ export default function Home() {
 
     if (trimmedQuestionText.length < MIN_QUESTION_LENGTH) {
       setIsError(true);
-      setMessage(
-        `متن سؤال باید حداقل ${MIN_QUESTION_LENGTH} کاراکتر باشد تا قابل بررسی باشد.`
-      );
+      setMessage(`متن سؤال باید حداقل ${MIN_QUESTION_LENGTH} کاراکتر باشد.`);
       return;
     }
 
@@ -143,12 +162,11 @@ export default function Home() {
       return;
     }
 
-    const enrichedQuestionText = [
-      trimmedQuestionText,
-      decisionSummary.length ? `زمینه تصمیم:\n${decisionSummary.join("\n")}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n\n---\n");
+    if (!financialGoal || !timeHorizon || !riskTolerance || !liquidityNeed) {
+      setIsError(true);
+      setMessage("لطفاً هدف مالی، افق زمانی، ریسک‌پذیری و نیاز نقدینگی را کامل کنید.");
+      return;
+    }
 
     setLoading(true);
 
@@ -161,10 +179,19 @@ export default function Home() {
         body: JSON.stringify({
           name: trimmedName,
           contact: trimmedContact,
-          question_text: enrichedQuestionText,
+          question_text: trimmedQuestionText,
           category,
           amount_range: amountRange,
           urgency,
+          financial_goal: financialGoal,
+          time_horizon: timeHorizon,
+          risk_tolerance: riskTolerance,
+          liquidity_need: liquidityNeed,
+          current_assets: currentAssets,
+          monthly_income: monthlyIncome,
+          monthly_expense: monthlyExpense,
+          investment_experience: investmentExperience,
+          investment_constraints: investmentConstraints,
           company,
         }),
       });
@@ -173,12 +200,12 @@ export default function Home() {
 
       if (!response.ok) {
         setIsError(true);
-        setMessage(result.error || "خطا در ثبت سؤال.");
+        setMessage(result.error || "خطا در ثبت اطلاعات.");
         return;
       }
 
       setMessage(
-        "سؤال شما ثبت شد. در نسخه اولیه، پاسخ پس از بررسی دستی و ساختارمند آماده می‌شود."
+        "پروفایل مالی اولیه و سؤال شما ثبت شد. در نسخه بعدی، پاسخ اولیه AI بر اساس همین داده‌ها ساخته می‌شود."
       );
 
       setName("");
@@ -187,9 +214,15 @@ export default function Home() {
       setCategory("");
       setAmountRange("");
       setUrgency("");
-      setGoal("");
-      setHorizon("");
+      setFinancialGoal("");
+      setTimeHorizon("");
       setRiskTolerance("");
+      setLiquidityNeed("");
+      setCurrentAssets("");
+      setMonthlyIncome("");
+      setMonthlyExpense("");
+      setInvestmentExperience("");
+      setInvestmentConstraints("");
       setCompany("");
     } catch {
       setIsError(true);
@@ -210,7 +243,7 @@ export default function Home() {
             <div className="text-lg font-semibold tracking-tight text-emerald-950">
               Ask SarvVest
             </div>
-            <div className="text-xs text-slate-500">Financial Decision Support</div>
+            <div className="text-xs text-slate-500">Financial Decision System</div>
           </div>
         </div>
 
@@ -227,20 +260,20 @@ export default function Home() {
         </nav>
       </header>
 
-      <section className="mx-auto flex min-h-[72vh] max-w-5xl flex-col items-center justify-center px-6 pb-16 pt-10 text-center">
+      <section className="mx-auto flex max-w-5xl flex-col items-center justify-center px-6 pb-16 pt-10 text-center">
         <p className="mb-5 rounded-full border border-emerald-900/10 bg-white px-4 py-2 text-xs font-medium text-emerald-950 shadow-sm">
           نسخه اولیه سیستم تصمیم‌یار مالی سرووست
         </p>
 
         <h1 className="max-w-4xl text-4xl font-black leading-[1.7] tracking-tight text-emerald-950 md:text-6xl">
-          سؤال مالی‌ات را بپرس؛
+          پروفایل مالی‌ات را بساز؛
           <br /> تصمیم را ساختارمندتر ببین.
         </h1>
 
         <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 md:text-lg">
-          Ask SarvVest برای تصمیم‌هایی مثل نگهداری پول نقد، خرید طلا یا دلار،
-          ورود به صندوق، ملک یا چینش سبد دارایی طراحی شده است؛ نه برای وعده سود
-          یا سیگنال قطعی.
+          Ask SarvVest قرار نیست فقط یک سایت پرسش و پاسخ باشد. اینجا ابتدا یک تصویر
+          اولیه از هدف، ریسک، نقدشوندگی و ترکیب دارایی ساخته می‌شود تا بعداً پاسخ
+          اولیه AI و در صورت نیاز بررسی تخصصی انسانی روی آن انجام شود.
         </p>
 
         <div className="mt-8 flex flex-wrap justify-center gap-2">
@@ -273,105 +306,7 @@ export default function Home() {
             />
           </label>
 
-          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-3 focus-within:border-emerald-900 md:p-4">
-            <textarea
-              value={questionText}
-              onChange={(event) => setQuestionText(event.target.value)}
-              required
-              minLength={MIN_QUESTION_LENGTH}
-              placeholder="مثلاً: با ۵ میلیارد تومان نقد، بهتر است طلا بخرم، دلار نگه دارم یا وارد صندوق شوم؟"
-              className="min-h-32 w-full resize-none bg-transparent px-3 py-3 text-right text-base leading-8 outline-none md:text-lg"
-            />
-            <div className="flex items-center justify-between border-t border-slate-200 px-3 pt-3 text-xs text-slate-500">
-              <span>{characterCount} کاراکتر</span>
-              <span>حداقل {MIN_QUESTION_LENGTH} کاراکتر</span>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <select
-              value={category}
-              required
-              onChange={(event) => setCategory(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
-            >
-              <option value="">موضوع سؤال</option>
-              {categoryOptions.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={amountRange}
-              onChange={(event) => setAmountRange(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
-            >
-              <option value="">حدود مبلغ تصمیم</option>
-              {amountOptions.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={urgency}
-              onChange={(event) => setUrgency(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
-            >
-              <option value="">زمان تصمیم‌گیری</option>
-              {urgencyOptions.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <select
-              value={goal}
-              onChange={(event) => setGoal(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
-            >
-              <option value="">هدف تصمیم</option>
-              {goalOptions.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={horizon}
-              onChange={(event) => setHorizon(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
-            >
-              <option value="">افق زمانی</option>
-              {horizonOptions.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={riskTolerance}
-              onChange={(event) => setRiskTolerance(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
-            >
-              <option value="">تحمل ریسک</option>
-              {riskOptions.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <input
               value={name}
               required
@@ -390,12 +325,183 @@ export default function Home() {
             />
           </div>
 
+          <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+            <div className="mb-3 text-sm font-black text-emerald-950">۱. هدف و چارچوب تصمیم</div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <select
+                value={financialGoal}
+                required
+                onChange={(event) => setFinancialGoal(event.target.value)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
+              >
+                <option value="">هدف مالی</option>
+                {goalOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={timeHorizon}
+                required
+                onChange={(event) => setTimeHorizon(event.target.value)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
+              >
+                <option value="">افق زمانی</option>
+                {horizonOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={riskTolerance}
+                required
+                onChange={(event) => setRiskTolerance(event.target.value)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
+              >
+                <option value="">تحمل ریسک</option>
+                {riskOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <select
+                value={liquidityNeed}
+                required
+                onChange={(event) => setLiquidityNeed(event.target.value)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
+              >
+                <option value="">نیاز به نقدینگی</option>
+                {liquidityOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={amountRange}
+                onChange={(event) => setAmountRange(event.target.value)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
+              >
+                <option value="">حدود مبلغ تصمیم</option>
+                {amountOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={urgency}
+                onChange={(event) => setUrgency(event.target.value)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
+              >
+                <option value="">زمان تصمیم‌گیری</option>
+                {urgencyOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-4">
+            <div className="mb-3 text-sm font-black text-emerald-950">۲. وضعیت مالی فعلی</div>
+            <textarea
+              value={currentAssets}
+              onChange={(event) => setCurrentAssets(event.target.value)}
+              placeholder="ترکیب دارایی فعلی را خیلی ساده بنویس؛ مثلاً: ۴۰٪ ملک، ۳۰٪ طلا، ۲۰٪ تتر، ۱۰٪ نقد"
+              className="min-h-28 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right leading-7 outline-none transition focus:border-emerald-800"
+            />
+
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <input
+                value={monthlyIncome}
+                onChange={(event) => setMonthlyIncome(event.target.value)}
+                placeholder="درآمد ماهانه تقریبی"
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-right outline-none transition focus:border-emerald-800"
+              />
+              <input
+                value={monthlyExpense}
+                onChange={(event) => setMonthlyExpense(event.target.value)}
+                placeholder="هزینه ماهانه تقریبی"
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-right outline-none transition focus:border-emerald-800"
+              />
+              <select
+                value={investmentExperience}
+                onChange={(event) => setInvestmentExperience(event.target.value)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
+              >
+                <option value="">تجربه سرمایه‌گذاری</option>
+                {experienceOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <textarea
+              value={investmentConstraints}
+              onChange={(event) => setInvestmentConstraints(event.target.value)}
+              placeholder="محدودیت‌ها یا خط قرمزها؛ مثلاً: نمی‌خواهم وارد بورس شوم، نیاز دارم بخشی همیشه نقد باشد، با تتر مشکل دارم..."
+              className="mt-3 min-h-24 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right leading-7 outline-none transition focus:border-emerald-800"
+            />
+          </div>
+
+          <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-3 focus-within:border-emerald-900 md:p-4">
+            <div className="mb-2 text-sm font-black text-emerald-950">۳. سؤال اصلی شما</div>
+            <textarea
+              value={questionText}
+              onChange={(event) => setQuestionText(event.target.value)}
+              required
+              minLength={MIN_QUESTION_LENGTH}
+              placeholder="مثلاً: با ۵ میلیارد تومان نقد، بهتر است طلا بخرم، دلار نگه دارم یا وارد صندوق شوم؟"
+              className="min-h-32 w-full resize-none bg-transparent px-3 py-3 text-right text-base leading-8 outline-none md:text-lg"
+            />
+            <div className="flex items-center justify-between border-t border-slate-200 px-3 pt-3 text-xs text-slate-500">
+              <span>{characterCount} کاراکتر</span>
+              <span>حداقل {MIN_QUESTION_LENGTH} کاراکتر</span>
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            <select
+              value={category}
+              required
+              onChange={(event) => setCategory(event.target.value)}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-emerald-800"
+            >
+              <option value="">موضوع سؤال</option>
+              {categoryOptions.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-600 md:col-span-2">
+              {profileSummary.length
+                ? profileSummary.join(" | ")
+                : "با تکمیل فرم، یک IPS ساده و مسیر بررسی اولیه ساخته می‌شود."}
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
             className="mt-5 w-full rounded-2xl bg-emerald-950 px-6 py-4 text-base font-bold text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "در حال ثبت..." : "ثبت سؤال و دریافت بررسی اولیه"}
+            {loading ? "در حال ثبت..." : "ثبت پروفایل مالی و شروع بررسی"}
           </button>
 
           {message && (
@@ -410,7 +516,7 @@ export default function Home() {
 
           <p className="mt-4 text-center text-xs leading-6 text-slate-500">
             این سرویس پیشنهاد شخصی‌سازی‌شده قطعی، سیگنال خرید و فروش یا وعده سود
-            ارائه نمی‌دهد؛ هدف، کمک به تصمیم‌گیری محتاطانه‌تر است.
+            ارائه نمی‌دهد؛ هدف، ساختن چارچوب تصمیم‌گیری و تشخیص نیاز به بررسی تخصصی است.
           </p>
         </form>
       </section>
@@ -419,26 +525,27 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-2xl font-black text-emerald-950 md:text-3xl">
-              فرآیند ساده، خروجی قابل تصمیم‌گیری
+              مسیر درست Ask SarvVest
             </h2>
             <p className="mt-4 leading-8 text-slate-600">
-              نسخه فعلی برای جمع‌آوری سؤال‌های واقعی و ساختن هسته تصمیم‌یار مالی
-              طراحی شده است.
+              هدف نهایی، ساخت پرونده مالی، IPS ساده، پاسخ اولیه AI و ارجاع موارد مهم به
+              بررسی تخصصی انسانی است.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="mt-10 grid gap-4 md:grid-cols-4">
             {[
-              ["۱", "سؤال را ثبت می‌کنید", "مسئله، مبلغ، فوریت و زمینه تصمیم را می‌نویسید."],
-              ["۲", "ابهام‌ها مشخص می‌شود", "ریسک، افق زمانی، نقدشوندگی و اطلاعات ناقص جدا می‌شود."],
-              ["۳", "پاسخ ساختارمند می‌گیرید", "در نسخه اولیه پاسخ دستی است؛ بعداً AI روی همین داده‌ها ساخته می‌شود."],
+              ["۱", "پروفایل مالی", "هدف، افق زمانی، نقدشوندگی، ریسک و دارایی فعلی ثبت می‌شود."],
+              ["۲", "IPS ساده", "سیستم یک خلاصه اولیه از وضعیت و محدودیت‌های تصمیم می‌سازد."],
+              ["۳", "پاسخ اولیه", "در مرحله بعد AI بر اساس همین داده‌ها پیش‌نویس پاسخ می‌دهد."],
+              ["۴", "بررسی انسانی", "موارد پیچیده، بزرگ یا پرریسک برای بررسی تخصصی جدا می‌شوند."],
             ].map(([step, title, description]) => (
               <div key={step} className="rounded-3xl border border-slate-100 bg-[#fbfbf8] p-6">
                 <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-950 text-lg font-bold text-white">
                   {step}
                 </div>
                 <h3 className="font-bold text-emerald-950">{title}</h3>
-                <p className="mt-3 leading-7 text-slate-600">{description}</p>
+                <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p>
               </div>
             ))}
           </div>
@@ -462,8 +569,8 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-slate-200 px-6 py-8 text-center text-xs leading-6 text-slate-500">
-        Ask SarvVest یک ابزار تصمیم‌یار آموزشی و تحلیلی است و جایگزین مشاوره
-        رسمی سرمایه‌گذاری، مالیاتی یا حقوقی نیست.
+        Ask SarvVest یک ابزار تصمیم‌یار آموزشی و تحلیلی است و جایگزین مشاوره رسمی
+        سرمایه‌گذاری، مالیاتی یا حقوقی نیست.
       </footer>
     </main>
   );
