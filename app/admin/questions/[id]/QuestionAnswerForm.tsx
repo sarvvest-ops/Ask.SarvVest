@@ -54,8 +54,10 @@ export default function QuestionAnswerForm({
   const [adminNotes, setAdminNotes] = useState(initialAdminNotes ?? "");
   const [status, setStatus] = useState(initialStatus ?? "reviewing");
   const [loading, setLoading] = useState(false);
+  const [promptLoading, setPromptLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
 
   const publicAnswerPath = answerToken ? `/answers/${answerToken}` : "";
   const [publicAnswerUrl, setPublicAnswerUrl] = useState(publicAnswerPath);
@@ -77,6 +79,44 @@ export default function QuestionAnswerForm({
     setFinalAnswer(sarvVestAnswerTemplate);
     setIsError(false);
     setMessage("قالب پاسخ حرفه‌ای سرووست درج شد. حالا بخش‌های داخل کروشه را کامل کن.");
+  }
+
+  async function buildAiPrompt() {
+    setPromptLoading(true);
+    setIsError(false);
+    setMessage("");
+
+    try {
+      const response = await fetch(`/api/admin/questions/${questionId}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        setIsError(true);
+        setMessage(result.error || "خطا در ساخت پرامپت.");
+        return;
+      }
+
+      setAiPrompt(result.prompt || "");
+      setMessage("پرامپت AI ساخته شد. آن را کپی کن و در ChatGPT تست بگیر.");
+    } catch {
+      setIsError(true);
+      setMessage("خطا در ارتباط با سرور.");
+    } finally {
+      setPromptLoading(false);
+    }
+  }
+
+  async function copyAiPrompt() {
+    if (!aiPrompt) return;
+
+    try {
+      await navigator.clipboard.writeText(aiPrompt);
+      setIsError(false);
+      setMessage("پرامپت AI کپی شد.");
+    } catch {
+      setIsError(true);
+      setMessage("کپی انجام نشد. متن پرامپت را دستی کپی کن.");
+    }
   }
 
   async function handleSubmit(targetStatus: string) {
@@ -146,6 +186,40 @@ export default function QuestionAnswerForm({
         <span className="w-fit rounded-full bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700">
           وضعیت فعلی: {status || "—"}
         </span>
+      </div>
+
+      <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-4 text-sm leading-7 text-blue-950">
+        <div className="font-black">Prompt Builder v1</div>
+        <p className="mt-2 text-blue-900">
+          تا وقتی API Key نداریم، این بخش پرامپت کامل پرونده را می‌سازد تا دستی در
+          ChatGPT تست بگیری. بعداً همین مسیر به AI واقعی وصل می‌شود.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={buildAiPrompt}
+            disabled={promptLoading}
+            className="rounded-full bg-white px-5 py-2 text-xs font-bold text-blue-950 shadow-sm hover:bg-blue-100 disabled:opacity-60"
+          >
+            {promptLoading ? "در حال ساخت..." : "ساخت پرامپت AI"}
+          </button>
+          {aiPrompt ? (
+            <button
+              type="button"
+              onClick={copyAiPrompt}
+              className="rounded-full bg-white px-5 py-2 text-xs font-bold text-blue-950 shadow-sm hover:bg-blue-100"
+            >
+              کپی پرامپت
+            </button>
+          ) : null}
+        </div>
+        {aiPrompt ? (
+          <textarea
+            value={aiPrompt}
+            readOnly
+            className="mt-4 min-h-64 w-full resize-y rounded-2xl border border-blue-100 bg-white px-4 py-3 text-right text-xs leading-7 outline-none"
+          />
+        ) : null}
       </div>
 
       <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-7 text-emerald-950">
