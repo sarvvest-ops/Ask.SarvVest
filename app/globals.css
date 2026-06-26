@@ -24,3 +24,42 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* SarvVest Ask brand mark */
+body > main > header > div > div:first-child {
+  min-height: 56px;
+  width: 190px;
+  background-image: url("/sarvvest-ask-logo.svg");
+  background-repeat: no-repeat;
+  background-position: center right;
+  background-size: contain;
+}
+
+body > main > header > div > div:first-child > * {
+  display: none;
+}
+
+header.text-center > div:first-child {
+  height: 92px;
+  width: 260px;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("/sarvvest-ask-logo.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  color: transparent;
+}
+
+.mx-auto.max-w-7xl > header::before,
+.mx-auto.max-w-6xl > header.mb-7::before {
+  content: "";
+  display: block;
+  width: 230px;
+  height: 90px;
+  margin-bottom: 18px;
+  background-image: url("/sarvvest-ask-logo.svg");
+  background-repeat: no-repeat;
+  background-position: center right;
+  background-size: contain;
+}
