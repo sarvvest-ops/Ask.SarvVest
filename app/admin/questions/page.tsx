@@ -123,10 +123,10 @@ function reviewRouteClass(value?: string | null) {
 }
 
 function getExpiryLabel(question: QuestionRow) {
-  if (!isAnswered(question)) return "—";
-  if (!question.answer_expires_at) return "نامشخص";
+  if (!isAnswered(question)) return "بدون پاسخ";
+  if (!question.answer_expires_at) return "اعتبار نامشخص";
   if (isExpired(question)) return "منقضی شده";
-  return `تا ${formatDate(question.answer_expires_at)}`;
+  return `اعتبار تا ${formatDate(question.answer_expires_at)}`;
 }
 
 async function getQuestions() {
@@ -219,9 +219,20 @@ export default async function AdminQuestionsPage({
       <div className="mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <a href="/" className="text-sm text-slate-500 hover:text-emerald-950">
-              بازگشت به صفحه اصلی
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <a href="/" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 hover:text-emerald-950">
+                بازگشت به صفحه اصلی
+              </a>
+              <span className="rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm">admin</span>
+              <form action="/api/admin/signout" method="post">
+                <button
+                  type="submit"
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  خروج
+                </button>
+              </form>
+            </div>
             <h1 className="mt-3 text-3xl font-black text-emerald-950 md:text-4xl">
               پنل Client Intake و سؤال‌ها
             </h1>
@@ -292,10 +303,10 @@ export default async function AdminQuestionsPage({
 
         <section className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="min-w-[1180px] border-collapse text-right text-sm">
+            <table className="min-w-[1060px] border-collapse text-right text-sm">
               <thead className="bg-emerald-950 text-white">
                 <tr>
-                  <th className="w-40 whitespace-nowrap px-5 py-4 font-bold">عملیات</th>
+                  <th className="w-36 whitespace-nowrap px-5 py-4 font-bold">عملیات</th>
                   <th className="w-[360px] px-5 py-4 font-bold">سؤال اصلی</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">تاریخ</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">کاربر</th>
@@ -303,14 +314,13 @@ export default async function AdminQuestionsPage({
                   <th className="whitespace-nowrap px-5 py-4 font-bold">مبلغ</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">ریسک</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">مسیر بررسی</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">وضعیت</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">اعتبار پاسخ</th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">وضعیت / اعتبار</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredQuestions.length === 0 && !error ? (
                   <tr>
-                    <td colSpan={10} className="px-5 py-10 text-center text-slate-500">
+                    <td colSpan={9} className="px-5 py-10 text-center text-slate-500">
                       موردی با این فیلتر پیدا نشد.
                     </td>
                   </tr>
@@ -321,28 +331,16 @@ export default async function AdminQuestionsPage({
                       className="border-b border-slate-100 align-top last:border-b-0 hover:bg-slate-50"
                     >
                       <td className="whitespace-nowrap px-5 py-4">
-                        <div className="flex flex-col gap-2">
-                          {question.id ? (
-                            <a
-                              href={`/admin/questions/${question.id}`}
-                              className="rounded-full bg-emerald-950 px-4 py-2 text-center text-xs font-bold text-white hover:bg-emerald-900"
-                            >
-                              مشاهده / پاسخ
-                            </a>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                          {isAnswered(question) && question.answer_token ? (
-                            <a
-                              href={`/answers/${question.answer_token}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-center text-xs font-bold text-emerald-800 hover:bg-emerald-50"
-                            >
-                              باز کردن پاسخ
-                            </a>
-                          ) : null}
-                        </div>
+                        {question.id ? (
+                          <a
+                            href={`/admin/questions/${question.id}`}
+                            className="rounded-full bg-emerald-950 px-4 py-2 text-center text-xs font-bold text-white hover:bg-emerald-900"
+                          >
+                            مشاهده / پاسخ
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-4 leading-7 text-slate-700">
                         <pre className="max-h-24 max-w-sm overflow-hidden whitespace-pre-wrap break-words font-sans text-sm">
@@ -373,16 +371,16 @@ export default async function AdminQuestionsPage({
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
-                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(question)}`}>
-                          {isExpired(question)
-                            ? "منقضی"
-                            : isAnswered(question)
-                              ? "پاسخ داده شد"
-                              : getLabel(statusLabels, question.status)}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-4 text-slate-600">
-                        {getExpiryLabel(question)}
+                        <div className="flex flex-col gap-2">
+                          <span className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(question)}`}>
+                            {isExpired(question)
+                              ? "منقضی"
+                              : isAnswered(question)
+                                ? "پاسخ داده شد"
+                                : getLabel(statusLabels, question.status)}
+                          </span>
+                          <span className="text-xs text-slate-500">{getExpiryLabel(question)}</span>
+                        </div>
                       </td>
                     </tr>
                   ))
