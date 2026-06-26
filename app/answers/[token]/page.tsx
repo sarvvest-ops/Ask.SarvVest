@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import ConsultationRequestForm from "./ConsultationRequestForm";
 
 export const dynamic = "force-dynamic";
 
@@ -148,16 +149,19 @@ export default async function PublicAnswerPage({
               </p>
             </div>
           ) : isReady ? (
-            <div className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
-              <div className="text-lg font-black text-emerald-950">پاسخ نهایی</div>
-              <p className="mt-3 rounded-2xl bg-white/70 px-4 py-3 text-sm leading-7 text-emerald-950">
-                این پاسخ از زمان انتشار به مدت ۳۰ روز قابل مشاهده است و پس از آن
-                به‌صورت خودکار حذف می‌شود.
-              </p>
-              <pre className="mt-4 whitespace-pre-wrap break-words font-sans text-base leading-9 text-emerald-950">
-                {answer.final_answer}
-              </pre>
-            </div>
+            <>
+              <div className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
+                <div className="text-lg font-black text-emerald-950">پاسخ نهایی</div>
+                <p className="mt-3 rounded-2xl bg-white/70 px-4 py-3 text-sm leading-7 text-emerald-950">
+                  این پاسخ از زمان انتشار به مدت ۳۰ روز قابل مشاهده است و پس از آن
+                  به‌صورت خودکار حذف می‌شود.
+                </p>
+                <pre className="mt-4 whitespace-pre-wrap break-words font-sans text-base leading-9 text-emerald-950">
+                  {answer.final_answer}
+                </pre>
+              </div>
+              <ConsultationRequestForm token={token} />
+            </>
           ) : (
             <div className="mt-5 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
               <div className="font-black">پاسخ هنوز آماده نیست</div>
