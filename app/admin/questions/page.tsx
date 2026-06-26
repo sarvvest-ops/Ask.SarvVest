@@ -15,6 +15,9 @@ type QuestionRow = {
   final_answer?: string | null;
   answer_token?: string | null;
   answer_expires_at?: string | null;
+  risk_profile?: string | null;
+  review_route?: string | null;
+  ips_summary?: string | null;
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -50,6 +53,18 @@ const statusLabels: Record<string, string> = {
   reviewing: "در حال بررسی",
   answered: "پاسخ داده شد",
   archived: "آرشیو",
+};
+
+const riskProfileLabels: Record<string, string> = {
+  conservative: "محافظه‌کار",
+  balanced: "متعادل",
+  aggressive: "تهاجمی",
+};
+
+const reviewRouteLabels: Record<string, string> = {
+  ai_ready: "AI Ready",
+  needs_human_review: "Needs Review",
+  premium_candidate: "Premium",
 };
 
 function getLabel(map: Record<string, string>, value?: string | null) {
@@ -94,18 +109,16 @@ function isExpired(question: QuestionRow) {
 }
 
 function statusBadgeClass(question: QuestionRow) {
-  if (isExpired(question)) {
-    return "bg-red-50 text-red-700 ring-1 ring-red-200";
-  }
+  if (isExpired(question)) return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  if (isAnswered(question)) return "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200";
+  if (question.status === "reviewing") return "bg-amber-50 text-amber-800 ring-1 ring-amber-200";
+  return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+}
 
-  if (isAnswered(question)) {
-    return "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200";
-  }
-
-  if (question.status === "reviewing") {
-    return "bg-amber-50 text-amber-800 ring-1 ring-amber-200";
-  }
-
+function reviewRouteClass(value?: string | null) {
+  if (value === "premium_candidate") return "bg-purple-50 text-purple-800 ring-1 ring-purple-200";
+  if (value === "needs_human_review") return "bg-amber-50 text-amber-800 ring-1 ring-amber-200";
+  if (value === "ai_ready") return "bg-blue-50 text-blue-800 ring-1 ring-blue-200";
   return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
 }
 
@@ -131,32 +144,22 @@ async function getQuestions() {
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+    auth: { autoRefreshToken: false, persistSession: false },
   });
 
   const { data, error } = await supabase
     .from("questions")
     .select(
-      "id, created_at, name, contact, question_text, category, amount_range, urgency, status, final_answer, answer_token, answer_expires_at"
+      "id, created_at, name, contact, question_text, category, amount_range, urgency, status, final_answer, answer_token, answer_expires_at, risk_profile, review_route, ips_summary"
     )
     .order("created_at", { ascending: false })
     .limit(200);
 
-  if (error) {
-    return { questions: [] as QuestionRow[], error: error.message };
-  }
-
+  if (error) return { questions: [] as QuestionRow[], error: error.message };
   return { questions: (data ?? []) as QuestionRow[], error: null };
 }
 
-function filterQuestions(
-  questions: QuestionRow[],
-  query: string,
-  statusFilter: StatusFilter
-) {
+function filterQuestions(questions: QuestionRow[], query: string, statusFilter: StatusFilter) {
   const cleanQuery = query.trim().toLowerCase();
 
   return questions.filter((question) => {
@@ -168,17 +171,19 @@ function filterQuestions(
           : (question.status ?? "new") === statusFilter;
 
     if (!matchesStatus) return false;
-
     if (!cleanQuery) return true;
 
     const searchableText = [
       question.name,
       question.contact,
       question.question_text,
+      question.ips_summary,
       getLabel(categoryLabels, question.category),
       getLabel(amountLabels, question.amount_range),
       getLabel(urgencyLabels, question.urgency),
       getLabel(statusLabels, question.status),
+      getLabel(riskProfileLabels, question.risk_profile),
+      getLabel(reviewRouteLabels, question.review_route),
     ]
       .filter(Boolean)
       .join(" ")
@@ -201,14 +206,13 @@ export default async function AdminQuestionsPage({
   const filteredQuestions = filterQuestions(questions, query, statusFilter);
 
   const newCount = questions.filter((question) => question.status === "new").length;
-  const reviewingCount = questions.filter(
-    (question) => question.status === "reviewing"
-  ).length;
-  const urgentCount = questions.filter(
-    (question) => question.urgency === "immediate"
-  ).length;
+  const reviewingCount = questions.filter((question) => question.status === "reviewing").length;
+  const urgentCount = questions.filter((question) => question.urgency === "immediate").length;
   const answeredCount = questions.filter(isAnswered).length;
   const expiredCount = questions.filter(isExpired).length;
+  const needsReviewCount = questions.filter(
+    (question) => question.review_route === "needs_human_review" || question.review_route === "premium_candidate"
+  ).length;
 
   return (
     <main dir="rtl" className="min-h-screen bg-[#f7f7f3] px-5 py-8 text-slate-900">
@@ -219,38 +223,28 @@ export default async function AdminQuestionsPage({
               بازگشت به صفحه اصلی
             </a>
             <h1 className="mt-3 text-3xl font-black text-emerald-950 md:text-4xl">
-              پنل سؤال‌های Ask SarvVest
+              پنل Client Intake و سؤال‌ها
             </h1>
             <p className="mt-3 max-w-2xl leading-8 text-slate-600">
-              سؤال‌ها را جستجو و فیلتر کن، پاسخ بده، و لینک پاسخ عمومی را سریع باز کن.
+              اینجا دیگر فقط سؤال‌ها را نمی‌بینی؛ پروفایل اولیه، ریسک‌پروفایل و مسیر بررسی هم نمایش داده می‌شود.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-3 lg:grid-cols-6">
-            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-              <div className="text-2xl font-black text-emerald-950">{questions.length}</div>
-              <div className="mt-1 text-xs text-slate-500">کل</div>
-            </div>
-            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-              <div className="text-2xl font-black text-emerald-950">{newCount}</div>
-              <div className="mt-1 text-xs text-slate-500">جدید</div>
-            </div>
-            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-              <div className="text-2xl font-black text-emerald-950">{reviewingCount}</div>
-              <div className="mt-1 text-xs text-slate-500">در بررسی</div>
-            </div>
-            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-              <div className="text-2xl font-black text-emerald-950">{urgentCount}</div>
-              <div className="mt-1 text-xs text-slate-500">فوری</div>
-            </div>
-            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-              <div className="text-2xl font-black text-emerald-950">{answeredCount}</div>
-              <div className="mt-1 text-xs text-slate-500">پاسخ‌دار</div>
-            </div>
-            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-              <div className="text-2xl font-black text-red-700">{expiredCount}</div>
-              <div className="mt-1 text-xs text-slate-500">منقضی</div>
-            </div>
+          <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-3 lg:grid-cols-7">
+            {[
+              [questions.length, "کل"],
+              [newCount, "جدید"],
+              [reviewingCount, "در بررسی"],
+              [urgentCount, "فوری"],
+              [answeredCount, "پاسخ‌دار"],
+              [needsReviewCount, "نیاز بررسی"],
+              [expiredCount, "منقضی"],
+            ].map(([count, label]) => (
+              <div key={label} className="rounded-3xl bg-white px-4 py-4 shadow-sm">
+                <div className="text-2xl font-black text-emerald-950">{count}</div>
+                <div className="mt-1 text-xs text-slate-500">{label}</div>
+              </div>
+            ))}
           </div>
         </header>
 
@@ -261,7 +255,7 @@ export default async function AdminQuestionsPage({
           <input
             name="q"
             defaultValue={query}
-            placeholder="جستجو در نام، تماس، متن سؤال یا موضوع..."
+            placeholder="جستجو در نام، تماس، سؤال، IPS، ریسک یا مسیر بررسی..."
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-emerald-800 focus:bg-white"
           />
           <select
@@ -287,7 +281,7 @@ export default async function AdminQuestionsPage({
         </form>
 
         <div className="mt-4 text-sm text-slate-500">
-          نمایش {filteredQuestions.length} مورد از {questions.length} سؤال آخر
+          نمایش {filteredQuestions.length} مورد از {questions.length} پرونده آخر
         </div>
 
         {error && (
@@ -305,10 +299,10 @@ export default async function AdminQuestionsPage({
                   <th className="whitespace-nowrap px-5 py-4 font-bold">لینک پاسخ</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">تاریخ</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">کاربر</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">تماس</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">موضوع</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">مبلغ</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">فوریت</th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">ریسک</th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">مسیر بررسی</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">وضعیت</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">اعتبار پاسخ</th>
                   <th className="min-w-96 px-5 py-4 font-bold">متن سؤال</th>
@@ -356,11 +350,9 @@ export default async function AdminQuestionsPage({
                       <td className="whitespace-nowrap px-5 py-4 text-slate-500">
                         {formatDate(question.created_at)}
                       </td>
-                      <td className="whitespace-nowrap px-5 py-4 font-bold text-emerald-950">
-                        {question.name || "—"}
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-4 text-slate-600">
-                        {question.contact || "—"}
+                      <td className="whitespace-nowrap px-5 py-4">
+                        <div className="font-bold text-emerald-950">{question.name || "—"}</div>
+                        <div className="mt-1 text-xs text-slate-500">{question.contact || "—"}</div>
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
                         {getLabel(categoryLabels, question.category)}
@@ -369,7 +361,14 @@ export default async function AdminQuestionsPage({
                         {getLabel(amountLabels, question.amount_range)}
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
-                        {getLabel(urgencyLabels, question.urgency)}
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                          {getLabel(riskProfileLabels, question.risk_profile)}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4">
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${reviewRouteClass(question.review_route)}`}>
+                          {getLabel(reviewRouteLabels, question.review_route)}
+                        </span>
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(question)}`}>
