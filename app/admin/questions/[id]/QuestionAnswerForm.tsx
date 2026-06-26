@@ -43,6 +43,27 @@ const sarvVestAnswerTemplate = `۱. خلاصه تصمیم
 
 یادآوری: این پاسخ بر اساس اطلاعات محدود ثبت‌شده تهیه شده و جایگزین مشاوره اختصاصی سرمایه‌گذاری، حقوقی یا مالیاتی نیست. اعتبار مشاهده این پاسخ از زمان انتشار ۳۰ روز است.`;
 
+function extractUserFacingSection(value: string) {
+  const text = value.trim();
+  if (!text) return "";
+
+  const markers = [
+    "بخش دوم: متن پیشنهادی قابل ارسال به کاربر",
+    "بخش دوم: متن پیشنهادی برای کاربر",
+    "بخش دوم: متن قابل ارسال به کاربر",
+    "بخش دوم:",
+  ];
+
+  for (const marker of markers) {
+    const index = text.indexOf(marker);
+    if (index >= 0) {
+      return text.slice(index + marker.length).trim();
+    }
+  }
+
+  return text;
+}
+
 export default function QuestionAnswerForm({
   questionId,
   initialFinalAnswer,
@@ -58,6 +79,7 @@ export default function QuestionAnswerForm({
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
+  const [aiResult, setAiResult] = useState("");
 
   const publicAnswerPath = answerToken ? `/answers/${answerToken}` : "";
   const [publicAnswerUrl, setPublicAnswerUrl] = useState(publicAnswerPath);
@@ -117,6 +139,28 @@ export default function QuestionAnswerForm({
       setIsError(true);
       setMessage("کپی انجام نشد. متن پرامپت را دستی کپی کن.");
     }
+  }
+
+  function moveAiResultToEditor() {
+    const draft = extractUserFacingSection(aiResult);
+
+    if (!draft) {
+      setIsError(true);
+      setMessage("ابتدا خروجی کامل AI را در باکس مربوطه وارد کن.");
+      return;
+    }
+
+    if (finalAnswer.trim()) {
+      const shouldReplace = window.confirm(
+        "ادیتور پاسخ خالی نیست. آیا بخش دوم خروجی AI جایگزین متن فعلی شود؟"
+      );
+
+      if (!shouldReplace) return;
+    }
+
+    setFinalAnswer(draft);
+    setIsError(false);
+    setMessage("بخش دوم خروجی AI داخل ادیتور پاسخ قرار گرفت. حالا آن را به عنوان مشاور مالی ویرایش کن.");
   }
 
   async function handleSubmit(targetStatus: string) {
@@ -189,10 +233,10 @@ export default function QuestionAnswerForm({
       </div>
 
       <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-4 text-sm leading-7 text-blue-950">
-        <div className="font-black">Prompt Builder v1</div>
+        <div className="font-black">Prompt Builder v2</div>
         <p className="mt-2 text-blue-900">
-          تا وقتی API Key نداریم، این بخش پرامپت کامل پرونده را می‌سازد تا دستی در
-          ChatGPT تست بگیری. بعداً همین مسیر به AI واقعی وصل می‌شود.
+          پرامپت پرونده را بساز، در ChatGPT اجرا کن، سپس خروجی کامل AI را در همین بخش
+          وارد کن تا فقط متن قابل ارسال به کاربر وارد ادیتور پاسخ شود.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
@@ -220,6 +264,27 @@ export default function QuestionAnswerForm({
             className="mt-4 min-h-64 w-full resize-y rounded-2xl border border-blue-100 bg-white px-4 py-3 text-right text-xs leading-7 outline-none"
           />
         ) : null}
+
+        <label className="mt-5 block text-sm font-black text-blue-950">
+          خروجی کامل AI
+        </label>
+        <p className="mt-1 text-xs leading-6 text-blue-900">
+          خروجی کامل ChatGPT را اینجا Paste کن. سیستم فقط بخش دوم، یعنی متن قابل ارسال
+          به کاربر را وارد ادیتور پاسخ نهایی می‌کند.
+        </p>
+        <textarea
+          value={aiResult}
+          onChange={(event) => setAiResult(event.target.value)}
+          placeholder="خروجی کامل AI را اینجا وارد کن..."
+          className="mt-2 min-h-48 w-full resize-y rounded-2xl border border-blue-100 bg-white px-4 py-3 text-right text-sm leading-7 outline-none"
+        />
+        <button
+          type="button"
+          onClick={moveAiResultToEditor}
+          className="mt-3 rounded-full bg-blue-950 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-900"
+        >
+          انتقال بخش دوم به ادیتور پاسخ
+        </button>
       </div>
 
       <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-7 text-emerald-950">
@@ -240,18 +305,18 @@ export default function QuestionAnswerForm({
       <div className="mt-6 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <label className="block text-sm font-bold text-slate-700">پاسخ نهایی</label>
         <div className="text-xs text-slate-500">
-          قبل از انتشار، قسمت‌های داخل کروشه را حذف یا کامل کن.
+          قبل از انتشار، متن را به عنوان مشاور مالی بررسی و ویرایش کن.
         </div>
       </div>
       <textarea
         value={finalAnswer}
         onChange={(event) => setFinalAnswer(event.target.value)}
-        placeholder="پاسخ ساختارمند سرووست را اینجا بنویس..."
+        placeholder="پاسخ قابل ارسال به کاربر اینجا قرار می‌گیرد..."
         className="mt-2 min-h-96 w-full resize-y rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-right text-base leading-8 outline-none transition focus:border-emerald-900"
       />
 
       <label className="mt-5 block text-sm font-bold text-slate-700">
-        یادداشت داخلی ادمین
+        یادداشت داخلی مشاور
       </label>
       <textarea
         value={adminNotes}
