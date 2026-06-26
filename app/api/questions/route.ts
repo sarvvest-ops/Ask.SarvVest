@@ -93,6 +93,7 @@ export async function POST(request: Request) {
       category,
       amount_range: amountRange || null,
       urgency: urgency || null,
+      answer_token: crypto.randomUUID(),
       status: "new",
     });
 
