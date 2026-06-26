@@ -10,45 +10,69 @@ type QuestionAnswerFormProps = {
   answerToken?: string | null;
 };
 
-const userFacingMarkers = [
-  "بخش دوم: متن پیشنهادی قابل ارسال به کاربر",
-  "بخش دوم: متن پیشنهادی برای کاربر",
-  "بخش دوم: متن قابل ارسال به کاربر",
-  "بخش دوم:",
-];
+type SectionMatch = {
+  index: number;
+  endIndex: number;
+};
 
-function findUserFacingIndex(value: string) {
-  const matches = userFacingMarkers
-    .map((marker) => ({ marker, index: value.indexOf(marker) }))
-    .filter((item) => item.index >= 0)
-    .sort((a, b) => a.index - b.index);
+function normalizeAiText(value: string) {
+  return value.replace(/\r\n/g, "\n").trim();
+}
 
-  return matches[0] ?? null;
+function findUserFacingSectionStart(value: string): SectionMatch | null {
+  const patterns = [
+    /(^|\n)\s*#{0,6}\s*بخش\s*دوم\s*[:：\-–—]?\s*متن\s*پیشنهادی\s*قابل\s*ارسال\s*به\s*کاربر\s*/m,
+    /(^|\n)\s*#{0,6}\s*بخش\s*دوم\s*[:：\-–—]?\s*متن\s*پیشنهادی\s*برای\s*کاربر\s*/m,
+    /(^|\n)\s*#{0,6}\s*بخش\s*دوم\s*[:：\-–—]?\s*متن\s*قابل\s*ارسال\s*به\s*کاربر\s*/m,
+    /(^|\n)\s*#{0,6}\s*بخش\s*دوم\s*[:：\-–—]?\s*/m,
+  ];
+
+  for (const pattern of patterns) {
+    const match = pattern.exec(value);
+    if (match && match.index >= 0) {
+      return {
+        index: match.index + (match[0].startsWith("\n") ? 1 : 0),
+        endIndex: match.index + match[0].length,
+      };
+    }
+  }
+
+  return null;
+}
+
+function removeInternalSectionHeading(value: string) {
+  return value
+    .replace(
+      /^\s*#{0,6}\s*بخش\s*اول\s*[:：\-–—]?\s*تحلیل\s*داخلی\s*برای\s*مشاور\s*مالی\s*SarvVest\s*/m,
+      ""
+    )
+    .replace(
+      /^\s*#{0,6}\s*بخش\s*اول\s*[:：\-–—]?\s*تحلیل\s*داخلی\s*برای\s*مشاور\s*مالی\s*/m,
+      ""
+    )
+    .replace(/^\s*#{0,6}\s*بخش\s*اول\s*[:：\-–—]?\s*/m, "")
+    .trim();
 }
 
 function extractUserFacingSection(value: string) {
-  const text = value.trim();
+  const text = normalizeAiText(value);
   if (!text) return "";
 
-  const match = findUserFacingIndex(text);
+  const match = findUserFacingSectionStart(text);
   if (!match) return text;
 
-  return text.slice(match.index + match.marker.length).trim();
+  return text.slice(match.endIndex).trim();
 }
 
 function extractInternalAdvisorSection(value: string) {
-  const text = value.trim();
+  const text = normalizeAiText(value);
   if (!text) return "";
 
-  const match = findUserFacingIndex(text);
+  const match = findUserFacingSectionStart(text);
   const internal = match ? text.slice(0, match.index).trim() : "";
   if (!internal) return "";
 
-  return internal
-    .replace("بخش اول: تحلیل داخلی برای مشاور مالی SarvVest", "")
-    .replace("بخش اول: تحلیل داخلی برای مشاور مالی", "")
-    .replace("بخش اول:", "")
-    .trim();
+  return removeInternalSectionHeading(internal);
 }
 
 export default function QuestionAnswerForm({
@@ -144,8 +168,8 @@ export default function QuestionAnswerForm({
     setIsError(false);
     setMessage(
       internalNote
-        ? "بخش دوم داخل ادیتور پاسخ و بخش اول داخل یادداشت داخلی مشاور قرار گرفت."
-        : "بخش دوم خروجی AI داخل ادیتور پاسخ قرار گرفت. حالا آن را به عنوان مشاور مالی ویرایش کن."
+        ? "بخش دوم داخل ادیتور پاسخ و بخش اول داخل یادداشت داخلی مشاور قرار گرفت. برای ثبت در دیتابیس، ذخیره پیش‌نویس یا انتشار پاسخ را بزن."
+        : "بخش دوم خروجی AI داخل ادیتور پاسخ قرار گرفت، اما بخش اول شناسایی نشد. تیتر بخش اول و بخش دوم را در خروجی AI بررسی کن."
     );
   }
 
@@ -308,7 +332,7 @@ export default function QuestionAnswerForm({
           type="button"
           disabled={loading}
           onClick={() => handleSubmit("answered")}
-          className="rounded-2xl bg-emerald-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-2xl bg-emerald-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-emerald-900 disabled:opacity-60"
         >
           {loading ? "در حال ذخیره..." : "انتشار پاسخ"}
         </button>
