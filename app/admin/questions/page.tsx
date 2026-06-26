@@ -21,7 +21,15 @@ type QuestionRow = {
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
-type StatusFilter = "all" | "new" | "reviewing" | "answered" | "archived";
+type StatusFilter =
+  | "all"
+  | "new"
+  | "reviewing"
+  | "urgent"
+  | "answered"
+  | "needs-review"
+  | "expired"
+  | "archived";
 
 const categoryLabels: Record<string, string> = {
   cash: "پول نقد",
@@ -79,11 +87,38 @@ function getSingleParam(searchParams: SearchParams, key: string) {
 }
 
 function getStatusFilter(value: string): StatusFilter {
-  if (["new", "reviewing", "answered", "archived"].includes(value)) {
+  if (
+    [
+      "new",
+      "reviewing",
+      "urgent",
+      "answered",
+      "needs-review",
+      "expired",
+      "archived",
+    ].includes(value)
+  ) {
     return value as StatusFilter;
   }
 
   return "all";
+}
+
+function buildFilterHref(filter: StatusFilter, query: string) {
+  const params = new URLSearchParams();
+
+  if (filter !== "all") params.set("status", filter);
+  if (query) params.set("q", query);
+
+  const queryString = params.toString();
+  return `/admin/questions${queryString ? `?${queryString}` : ""}`;
+}
+
+function needsAdvisorReview(question: QuestionRow) {
+  return (
+    question.review_route === "needs_human_review" ||
+    question.review_route === "premium_candidate"
+  );
 }
 
 function formatDate(value?: string | null) {
@@ -110,15 +145,20 @@ function isExpired(question: QuestionRow) {
 
 function statusBadgeClass(question: QuestionRow) {
   if (isExpired(question)) return "bg-red-50 text-red-700 ring-1 ring-red-200";
-  if (isAnswered(question)) return "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200";
-  if (question.status === "reviewing") return "bg-amber-50 text-amber-800 ring-1 ring-amber-200";
+  if (isAnswered(question))
+    return "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200";
+  if (question.status === "reviewing")
+    return "bg-amber-50 text-amber-800 ring-1 ring-amber-200";
   return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
 }
 
 function reviewRouteClass(value?: string | null) {
-  if (value === "premium_candidate") return "bg-purple-50 text-purple-800 ring-1 ring-purple-200";
-  if (value === "needs_human_review") return "bg-amber-50 text-amber-800 ring-1 ring-amber-200";
-  if (value === "ai_ready") return "bg-blue-50 text-blue-800 ring-1 ring-blue-200";
+  if (value === "premium_candidate")
+    return "bg-purple-50 text-purple-800 ring-1 ring-purple-200";
+  if (value === "needs_human_review")
+    return "bg-amber-50 text-amber-800 ring-1 ring-amber-200";
+  if (value === "ai_ready")
+    return "bg-blue-50 text-blue-800 ring-1 ring-blue-200";
   return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
 }
 
@@ -150,7 +190,7 @@ async function getQuestions() {
   const { data, error } = await supabase
     .from("questions")
     .select(
-      "id, created_at, name, contact, question_text, category, amount_range, urgency, status, final_answer, answer_token, answer_expires_at, risk_profile, review_route, ips_summary"
+      "id, created_at, name, contact, question_text, category, amount_range, urgency, status, final_answer, answer_token, answer_expires_at, risk_profile, review_route, ips_summary",
     )
     .order("created_at", { ascending: false })
     .limit(200);
@@ -159,16 +199,26 @@ async function getQuestions() {
   return { questions: (data ?? []) as QuestionRow[], error: null };
 }
 
-function filterQuestions(questions: QuestionRow[], query: string, statusFilter: StatusFilter) {
+function filterQuestions(
+  questions: QuestionRow[],
+  query: string,
+  statusFilter: StatusFilter,
+) {
   const cleanQuery = query.trim().toLowerCase();
 
   return questions.filter((question) => {
     const matchesStatus =
       statusFilter === "all"
         ? true
-        : statusFilter === "answered"
-          ? isAnswered(question)
-          : (question.status ?? "new") === statusFilter;
+        : statusFilter === "urgent"
+          ? question.urgency === "immediate"
+          : statusFilter === "answered"
+            ? isAnswered(question) && !isExpired(question)
+            : statusFilter === "needs-review"
+              ? needsAdvisorReview(question)
+              : statusFilter === "expired"
+                ? isExpired(question)
+                : (question.status ?? "new") === statusFilter;
 
     if (!matchesStatus) return false;
     if (!cleanQuery) return true;
@@ -200,30 +250,90 @@ export default async function AdminQuestionsPage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const query = getSingleParam(resolvedSearchParams, "q").trim();
-  const statusFilter = getStatusFilter(getSingleParam(resolvedSearchParams, "status"));
+  const statusFilter = getStatusFilter(
+    getSingleParam(resolvedSearchParams, "status"),
+  );
 
   const { questions, error } = await getQuestions();
   const filteredQuestions = filterQuestions(questions, query, statusFilter);
-
-  const newCount = questions.filter((question) => question.status === "new").length;
-  const reviewingCount = questions.filter((question) => question.status === "reviewing").length;
-  const urgentCount = questions.filter((question) => question.urgency === "immediate").length;
-  const answeredCount = questions.filter(isAnswered).length;
-  const expiredCount = questions.filter(isExpired).length;
-  const needsReviewCount = questions.filter(
-    (question) => question.review_route === "needs_human_review" || question.review_route === "premium_candidate"
+  const newCount = questions.filter(
+    (question) => question.status === "new",
   ).length;
+  const reviewingCount = questions.filter(
+    (question) => question.status === "reviewing",
+  ).length;
+  const urgentCount = questions.filter(
+    (question) => question.urgency === "immediate",
+  ).length;
+  const answeredCount = questions.filter(
+    (question) => isAnswered(question) && !isExpired(question),
+  ).length;
+  const expiredCount = questions.filter(isExpired).length;
+  const needsReviewCount = questions.filter(needsAdvisorReview).length;
+
+  const statCards: {
+    count: number;
+    label: string;
+    filter: StatusFilter;
+    hint: string;
+  }[] = [
+    {
+      count: questions.length,
+      label: "کل",
+      filter: "all",
+      hint: "همه پرونده‌ها",
+    },
+    { count: newCount, label: "جدید", filter: "new", hint: "هنوز بررسی نشده" },
+    {
+      count: reviewingCount,
+      label: "در بررسی",
+      filter: "reviewing",
+      hint: "در حال کار",
+    },
+    {
+      count: urgentCount,
+      label: "فوری",
+      filter: "urgent",
+      hint: "نیازمند اولویت",
+    },
+    {
+      count: answeredCount,
+      label: "پاسخ‌دار",
+      filter: "answered",
+      hint: "پاسخ معتبر",
+    },
+    {
+      count: needsReviewCount,
+      label: "نیاز بررسی",
+      filter: "needs-review",
+      hint: "بررسی انسانی",
+    },
+    {
+      count: expiredCount,
+      label: "منقضی",
+      filter: "expired",
+      hint: "خارج از اعتبار",
+    },
+  ];
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#f7f7f3] px-4 py-8 text-slate-900 md:px-5">
+    <main
+      dir="rtl"
+      className="min-h-screen bg-[#f7f7f3] px-4 py-8 text-slate-900 md:px-5"
+    >
       <div className="mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <a href="/" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 hover:text-emerald-950">
+              <a
+                href="/"
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 hover:text-emerald-950"
+              >
                 بازگشت به صفحه اصلی
               </a>
-              <span className="rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm">admin</span>
+              <span className="rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm">
+                admin
+              </span>
               <form action="/api/admin/signout" method="post">
                 <button
                   type="submit"
@@ -237,25 +347,52 @@ export default async function AdminQuestionsPage({
               پنل Client Intake و سؤال‌ها
             </h1>
             <p className="mt-3 max-w-2xl leading-8 text-slate-600">
-              اینجا دیگر فقط سؤال‌ها را نمی‌بینی؛ پروفایل اولیه، ریسک‌پروفایل و مسیر بررسی هم نمایش داده می‌شود.
+              اینجا دیگر فقط سؤال‌ها را نمی‌بینی؛ پروفایل اولیه، ریسک‌پروفایل و
+              مسیر بررسی هم نمایش داده می‌شود.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-3 lg:grid-cols-7">
-            {[
-              [questions.length, "کل"],
-              [newCount, "جدید"],
-              [reviewingCount, "در بررسی"],
-              [urgentCount, "فوری"],
-              [answeredCount, "پاسخ‌دار"],
-              [needsReviewCount, "نیاز بررسی"],
-              [expiredCount, "منقضی"],
-            ].map(([count, label]) => (
-              <div key={label} className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-                <div className="text-2xl font-black text-emerald-950">{count}</div>
-                <div className="mt-1 text-xs text-slate-500">{label}</div>
-              </div>
-            ))}
+            {statCards.map((card) => {
+              const isActive = statusFilter === card.filter;
+
+              return (
+                <a
+                  key={card.label}
+                  href={buildFilterHref(card.filter, query)}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`rounded-3xl px-4 py-4 shadow-sm ring-1 transition hover:-translate-y-0.5 hover:shadow-md ${
+                    isActive
+                      ? "bg-emerald-950 text-white ring-emerald-950"
+                      : "bg-white text-slate-700 ring-slate-200 hover:ring-emerald-200"
+                  }`}
+                >
+                  <div
+                    className={`text-3xl font-black ${
+                      isActive ? "text-white" : "text-emerald-950"
+                    }`}
+                  >
+                    {card.count}
+                  </div>
+
+                  <div
+                    className={`mt-1 text-xs font-bold ${
+                      isActive ? "text-emerald-50" : "text-slate-600"
+                    }`}
+                  >
+                    {card.label}
+                  </div>
+
+                  <div
+                    className={`mt-1 text-[10px] leading-5 ${
+                      isActive ? "text-emerald-100" : "text-slate-400"
+                    }`}
+                  >
+                    {card.hint}
+                  </div>
+                </a>
+              );
+            })}
           </div>
         </header>
 
@@ -277,7 +414,10 @@ export default async function AdminQuestionsPage({
             <option value="all">همه وضعیت‌ها</option>
             <option value="new">جدید</option>
             <option value="reviewing">در حال بررسی</option>
+            <option value="urgent">فوری</option>
             <option value="answered">پاسخ داده‌شده</option>
+            <option value="needs-review">نیاز بررسی</option>
+            <option value="expired">منقضی</option>
             <option value="archived">آرشیو</option>
           </select>
           <button className="rounded-2xl bg-emerald-950 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-900">
@@ -306,21 +446,40 @@ export default async function AdminQuestionsPage({
             <table className="min-w-[1060px] border-collapse text-right text-sm">
               <thead className="bg-emerald-950 text-white">
                 <tr>
-                  <th className="w-36 whitespace-nowrap px-5 py-4 font-bold">عملیات</th>
+                  <th className="w-36 whitespace-nowrap px-5 py-4 font-bold">
+                    عملیات
+                  </th>
                   <th className="w-[360px] px-5 py-4 font-bold">سؤال اصلی</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">تاریخ</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">کاربر</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">موضوع</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">مبلغ</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">ریسک</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">مسیر بررسی</th>
-                  <th className="whitespace-nowrap px-5 py-4 font-bold">وضعیت / اعتبار</th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">
+                    تاریخ
+                  </th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">
+                    کاربر
+                  </th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">
+                    موضوع
+                  </th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">
+                    مبلغ
+                  </th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">
+                    ریسک
+                  </th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">
+                    مسیر بررسی
+                  </th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">
+                    وضعیت / اعتبار
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredQuestions.length === 0 && !error ? (
                   <tr>
-                    <td colSpan={9} className="px-5 py-10 text-center text-slate-500">
+                    <td
+                      colSpan={9}
+                      className="px-5 py-10 text-center text-slate-500"
+                    >
                       موردی با این فیلتر پیدا نشد.
                     </td>
                   </tr>
@@ -351,8 +510,12 @@ export default async function AdminQuestionsPage({
                         {formatDate(question.created_at)}
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
-                        <div className="font-bold text-emerald-950">{question.name || "—"}</div>
-                        <div className="mt-1 text-xs text-slate-500">{question.contact || "—"}</div>
+                        <div className="font-bold text-emerald-950">
+                          {question.name || "—"}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {question.contact || "—"}
+                        </div>
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
                         {getLabel(categoryLabels, question.category)}
@@ -366,20 +529,26 @@ export default async function AdminQuestionsPage({
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
-                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${reviewRouteClass(question.review_route)}`}>
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-bold ${reviewRouteClass(question.review_route)}`}
+                        >
                           {getLabel(reviewRouteLabels, question.review_route)}
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
                         <div className="flex flex-col gap-2">
-                          <span className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(question)}`}>
+                          <span
+                            className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(question)}`}
+                          >
                             {isExpired(question)
                               ? "منقضی"
                               : isAnswered(question)
                                 ? "پاسخ داده شد"
                                 : getLabel(statusLabels, question.status)}
                           </span>
-                          <span className="text-xs text-slate-500">{getExpiryLabel(question)}</span>
+                          <span className="text-xs text-slate-500">
+                            {getExpiryLabel(question)}
+                          </span>
                         </div>
                       </td>
                     </tr>
