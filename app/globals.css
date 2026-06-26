@@ -68,3 +68,19 @@ header.text-center > div:first-child {
 .mx-auto.max-w-7xl > header > div:first-child > p {
   display: none;
 }
+
+/* Admin header: replace the stat cards with the account tabs */
+.mx-auto.max-w-7xl > header > div:nth-child(2) {
+  display: none;
+}
+
+.mx-auto.max-w-7xl > header > div:first-child {
+  margin-right: auto;
+  align-self: flex-start;
+}
+
+.mx-auto.max-w-7xl > header > div:first-child > div:first-child {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
