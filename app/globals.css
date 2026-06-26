@@ -3,6 +3,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --sarvvest-logo-width: 242px;
+  --sarvvest-logo-height: 95px;
 }
 
 @theme inline {
@@ -26,12 +28,21 @@ body {
 }
 
 /* SarvVest Ask brand mark */
+body > main > header > div {
+  position: relative;
+  min-height: calc(var(--sarvvest-logo-height) + 24px);
+}
+
 body > main > header > div > div:first-child {
-  min-height: 59px;
-  width: 200px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  min-height: var(--sarvvest-logo-height);
+  width: var(--sarvvest-logo-width);
+  transform: translate(-50%, -50%);
   background-image: url("/SarvVest_Ask_Logo_NoBackground.webp");
   background-repeat: no-repeat;
-  background-position: center right;
+  background-position: center;
   background-size: contain;
 }
 
@@ -39,9 +50,16 @@ body > main > header > div > div:first-child > * {
   display: none;
 }
 
+body > main > header > div > nav {
+  position: absolute;
+  top: 50%;
+  left: 1.5rem;
+  transform: translateY(-50%);
+}
+
 header.text-center > div:first-child {
-  height: 97px;
-  width: 273px;
+  height: var(--sarvvest-logo-height);
+  width: var(--sarvvest-logo-width);
   border-radius: 0;
   background-color: transparent;
   background-image: url("/SarvVest_Ask_Logo_NoBackground.webp");
@@ -51,16 +69,25 @@ header.text-center > div:first-child {
   color: transparent;
 }
 
+.mx-auto.max-w-7xl > header,
+.mx-auto.max-w-6xl > header.mb-7 {
+  position: relative;
+  padding-top: calc(var(--sarvvest-logo-height) + 18px);
+}
+
 .mx-auto.max-w-7xl > header::before,
 .mx-auto.max-w-6xl > header.mb-7::before {
   content: "";
   display: block;
-  width: 242px;
-  height: 95px;
-  margin-bottom: 18px;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--sarvvest-logo-width);
+  height: var(--sarvvest-logo-height);
+  transform: translateX(-50%);
   background-image: url("/SarvVest_Ask_Logo_NoBackground.webp");
   background-repeat: no-repeat;
-  background-position: center right;
+  background-position: center;
   background-size: contain;
 }
 
