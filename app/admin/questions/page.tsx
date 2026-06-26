@@ -12,6 +12,8 @@ type QuestionRow = {
   amount_range?: string | null;
   urgency?: string | null;
   status?: string | null;
+  final_answer?: string | null;
+  answer_token?: string | null;
 };
 
 const categoryLabels: Record<string, string> = {
@@ -88,7 +90,7 @@ async function getQuestions() {
   const { data, error } = await supabase
     .from("questions")
     .select(
-      "id, created_at, name, contact, question_text, category, amount_range, urgency, status"
+      "id, created_at, name, contact, question_text, category, amount_range, urgency, status, final_answer, answer_token"
     )
     .order("created_at", { ascending: false })
     .limit(50);
@@ -107,6 +109,9 @@ export default async function AdminQuestionsPage() {
   const urgentCount = questions.filter(
     (question) => question.urgency === "immediate"
   ).length;
+  const answeredCount = questions.filter(
+    (question) => question.status === "answered" || Boolean(question.final_answer)
+  ).length;
 
   return (
     <main dir="rtl" className="min-h-screen bg-[#f7f7f3] px-5 py-8 text-slate-900">
@@ -120,12 +125,12 @@ export default async function AdminQuestionsPage() {
               پنل سؤال‌های Ask SarvVest
             </h1>
             <p className="mt-3 max-w-2xl leading-8 text-slate-600">
-              این پنل نسخه سبک ادمین است؛ برای بررسی سریع سؤال‌های ثبت‌شده،
-              اولویت‌بندی دستی و شناخت الگوی نیاز کاربران.
+              از این صفحه سؤال‌ها را می‌بینی و با دکمه «مشاهده / پاسخ» وارد
+              صفحه پاسخ‌دهی هر سؤال می‌شوی.
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-4 gap-3 text-center">
             <div className="rounded-3xl bg-white px-5 py-4 shadow-sm">
               <div className="text-2xl font-black text-emerald-950">{questions.length}</div>
               <div className="mt-1 text-xs text-slate-500">کل سؤال‌ها</div>
@@ -137,6 +142,10 @@ export default async function AdminQuestionsPage() {
             <div className="rounded-3xl bg-white px-5 py-4 shadow-sm">
               <div className="text-2xl font-black text-emerald-950">{urgentCount}</div>
               <div className="mt-1 text-xs text-slate-500">فوری</div>
+            </div>
+            <div className="rounded-3xl bg-white px-5 py-4 shadow-sm">
+              <div className="text-2xl font-black text-emerald-950">{answeredCount}</div>
+              <div className="mt-1 text-xs text-slate-500">پاسخ‌دار</div>
             </div>
           </div>
         </header>
@@ -157,6 +166,7 @@ export default async function AdminQuestionsPage() {
             <table className="min-w-full border-collapse text-right text-sm">
               <thead className="bg-emerald-950 text-white">
                 <tr>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">عملیات</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">تاریخ</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">کاربر</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">تماس</th>
@@ -170,7 +180,7 @@ export default async function AdminQuestionsPage() {
               <tbody>
                 {questions.length === 0 && !error ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-10 text-center text-slate-500">
+                    <td colSpan={9} className="px-5 py-10 text-center text-slate-500">
                       هنوز سؤالی ثبت نشده است.
                     </td>
                   </tr>
@@ -180,6 +190,18 @@ export default async function AdminQuestionsPage() {
                       key={question.id ?? index}
                       className="border-b border-slate-100 align-top last:border-b-0 hover:bg-slate-50"
                     >
+                      <td className="whitespace-nowrap px-5 py-4">
+                        {question.id ? (
+                          <a
+                            href={`/admin/questions/${question.id}`}
+                            className="rounded-full bg-emerald-950 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-900"
+                          >
+                            مشاهده / پاسخ
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                       <td className="whitespace-nowrap px-5 py-4 text-slate-500">
                         {formatDate(question.created_at)}
                       </td>
