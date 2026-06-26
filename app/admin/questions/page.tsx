@@ -18,6 +18,7 @@ type QuestionRow = {
   risk_profile?: string | null;
   review_route?: string | null;
   ips_summary?: string | null;
+  admin_notes?: string | null;
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -28,6 +29,7 @@ type StatusFilter =
   | "urgent"
   | "answered"
   | "needs-review"
+  | "consultation-request"
   | "expired"
   | "archived";
 
@@ -94,6 +96,7 @@ function getStatusFilter(value: string): StatusFilter {
       "urgent",
       "answered",
       "needs-review",
+      "consultation-request",
       "expired",
       "archived",
     ].includes(value)
@@ -119,6 +122,12 @@ function needsAdvisorReview(question: QuestionRow) {
     question.review_route === "needs_human_review" ||
     question.review_route === "premium_candidate"
   );
+}
+
+function hasConsultationRequest(question: QuestionRow) {
+  const notes = question.admin_notes ?? "";
+
+  return notes.includes("درخواست مشاوره تلفنی از صفحه پاسخ عمومی");
 }
 
 function formatDate(value?: string | null) {
@@ -190,7 +199,7 @@ async function getQuestions() {
   const { data, error } = await supabase
     .from("questions")
     .select(
-      "id, created_at, name, contact, question_text, category, amount_range, urgency, status, final_answer, answer_token, answer_expires_at, risk_profile, review_route, ips_summary",
+      "id, created_at, name, contact, question_text, category, amount_range, urgency, status, final_answer, answer_token, answer_expires_at, risk_profile, review_route, ips_summary, admin_notes",
     )
     .order("created_at", { ascending: false })
     .limit(200);
@@ -216,9 +225,11 @@ function filterQuestions(
             ? isAnswered(question) && !isExpired(question)
             : statusFilter === "needs-review"
               ? needsAdvisorReview(question)
-              : statusFilter === "expired"
-                ? isExpired(question)
-                : (question.status ?? "new") === statusFilter;
+              : statusFilter === "consultation-request"
+                ? hasConsultationRequest(question)
+                : statusFilter === "expired"
+                  ? isExpired(question)
+                  : (question.status ?? "new") === statusFilter;
 
     if (!matchesStatus) return false;
     if (!cleanQuery) return true;
@@ -228,6 +239,7 @@ function filterQuestions(
       question.contact,
       question.question_text,
       question.ips_summary,
+      hasConsultationRequest(question) ? "درخواست مشاوره تلفنی تماس" : "",
       getLabel(categoryLabels, question.category),
       getLabel(amountLabels, question.amount_range),
       getLabel(urgencyLabels, question.urgency),
@@ -270,6 +282,7 @@ export default async function AdminQuestionsPage({
   ).length;
   const expiredCount = questions.filter(isExpired).length;
   const needsReviewCount = questions.filter(needsAdvisorReview).length;
+  const consultationRequestCount = questions.filter(hasConsultationRequest).length;
 
   const statCards: {
     count: number;
@@ -307,6 +320,12 @@ export default async function AdminQuestionsPage({
       label: "نیاز بررسی",
       filter: "needs-review",
       hint: "بررسی انسانی",
+    },
+    {
+      count: consultationRequestCount,
+      label: "مشاوره",
+      filter: "consultation-request",
+      hint: "درخواست تماس",
     },
     {
       count: expiredCount,
@@ -352,7 +371,7 @@ export default async function AdminQuestionsPage({
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-3 lg:grid-cols-7">
+          <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
             {statCards.map((card) => {
               const isActive = statusFilter === card.filter;
 
@@ -417,6 +436,7 @@ export default async function AdminQuestionsPage({
             <option value="urgent">فوری</option>
             <option value="answered">پاسخ داده‌شده</option>
             <option value="needs-review">نیاز بررسی</option>
+            <option value="consultation-request">درخواست مشاوره</option>
             <option value="expired">منقضی</option>
             <option value="archived">آرشیو</option>
           </select>
@@ -529,11 +549,19 @@ export default async function AdminQuestionsPage({
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-bold ${reviewRouteClass(question.review_route)}`}
-                        >
-                          {getLabel(reviewRouteLabels, question.review_route)}
-                        </span>
+                        <div className="flex flex-col gap-2">
+                          <span
+                            className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${reviewRouteClass(question.review_route)}`}
+                          >
+                            {getLabel(reviewRouteLabels, question.review_route)}
+                          </span>
+
+                          {hasConsultationRequest(question) ? (
+                            <span className="w-fit rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 ring-1 ring-rose-200">
+                              درخواست مشاوره
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
                         <div className="flex flex-col gap-2">
