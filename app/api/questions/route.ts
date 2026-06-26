@@ -60,7 +60,7 @@ function safeEnum(value: string, validSet: Set<string>) {
 }
 
 function getLabel(value: string) {
-  return labels[value] ?? value || "نامشخص";
+  return labels[value] ?? (value || "نامشخص");
 }
 
 function deriveRiskProfile(input: {
