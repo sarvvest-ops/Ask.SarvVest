@@ -14,7 +14,11 @@ type QuestionRow = {
   status?: string | null;
   final_answer?: string | null;
   answer_token?: string | null;
+  answer_expires_at?: string | null;
 };
+
+type SearchParams = Record<string, string | string[] | undefined>;
+type StatusFilter = "all" | "new" | "reviewing" | "answered" | "archived";
 
 const categoryLabels: Record<string, string> = {
   cash: "پول نقد",
@@ -53,6 +57,20 @@ function getLabel(map: Record<string, string>, value?: string | null) {
   return map[value] ?? value;
 }
 
+function getSingleParam(searchParams: SearchParams, key: string) {
+  const value = searchParams[key];
+  if (Array.isArray(value)) return value[0] ?? "";
+  return value ?? "";
+}
+
+function getStatusFilter(value: string): StatusFilter {
+  if (["new", "reviewing", "answered", "archived"].includes(value)) {
+    return value as StatusFilter;
+  }
+
+  return "all";
+}
+
 function formatDate(value?: string | null) {
   if (!value) return "—";
 
@@ -64,6 +82,38 @@ function formatDate(value?: string | null) {
   } catch {
     return value;
   }
+}
+
+function isAnswered(question: QuestionRow) {
+  return question.status === "answered" || Boolean(question.final_answer);
+}
+
+function isExpired(question: QuestionRow) {
+  if (!question.answer_expires_at) return false;
+  return new Date(question.answer_expires_at).getTime() < Date.now();
+}
+
+function statusBadgeClass(question: QuestionRow) {
+  if (isExpired(question)) {
+    return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  }
+
+  if (isAnswered(question)) {
+    return "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200";
+  }
+
+  if (question.status === "reviewing") {
+    return "bg-amber-50 text-amber-800 ring-1 ring-amber-200";
+  }
+
+  return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+}
+
+function getExpiryLabel(question: QuestionRow) {
+  if (!isAnswered(question)) return "—";
+  if (!question.answer_expires_at) return "نامشخص";
+  if (isExpired(question)) return "منقضی شده";
+  return `تا ${formatDate(question.answer_expires_at)}`;
 }
 
 async function getQuestions() {
@@ -90,10 +140,10 @@ async function getQuestions() {
   const { data, error } = await supabase
     .from("questions")
     .select(
-      "id, created_at, name, contact, question_text, category, amount_range, urgency, status, final_answer, answer_token"
+      "id, created_at, name, contact, question_text, category, amount_range, urgency, status, final_answer, answer_token, answer_expires_at"
     )
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(200);
 
   if (error) {
     return { questions: [] as QuestionRow[], error: error.message };
@@ -102,16 +152,63 @@ async function getQuestions() {
   return { questions: (data ?? []) as QuestionRow[], error: null };
 }
 
-export default async function AdminQuestionsPage() {
+function filterQuestions(
+  questions: QuestionRow[],
+  query: string,
+  statusFilter: StatusFilter
+) {
+  const cleanQuery = query.trim().toLowerCase();
+
+  return questions.filter((question) => {
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "answered"
+          ? isAnswered(question)
+          : (question.status ?? "new") === statusFilter;
+
+    if (!matchesStatus) return false;
+
+    if (!cleanQuery) return true;
+
+    const searchableText = [
+      question.name,
+      question.contact,
+      question.question_text,
+      getLabel(categoryLabels, question.category),
+      getLabel(amountLabels, question.amount_range),
+      getLabel(urgencyLabels, question.urgency),
+      getLabel(statusLabels, question.status),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(cleanQuery);
+  });
+}
+
+export default async function AdminQuestionsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const query = getSingleParam(resolvedSearchParams, "q").trim();
+  const statusFilter = getStatusFilter(getSingleParam(resolvedSearchParams, "status"));
+
   const { questions, error } = await getQuestions();
+  const filteredQuestions = filterQuestions(questions, query, statusFilter);
 
   const newCount = questions.filter((question) => question.status === "new").length;
+  const reviewingCount = questions.filter(
+    (question) => question.status === "reviewing"
+  ).length;
   const urgentCount = questions.filter(
     (question) => question.urgency === "immediate"
   ).length;
-  const answeredCount = questions.filter(
-    (question) => question.status === "answered" || Boolean(question.final_answer)
-  ).length;
+  const answeredCount = questions.filter(isAnswered).length;
+  const expiredCount = questions.filter(isExpired).length;
 
   return (
     <main dir="rtl" className="min-h-screen bg-[#f7f7f3] px-5 py-8 text-slate-900">
@@ -125,34 +222,72 @@ export default async function AdminQuestionsPage() {
               پنل سؤال‌های Ask SarvVest
             </h1>
             <p className="mt-3 max-w-2xl leading-8 text-slate-600">
-              از این صفحه سؤال‌ها را می‌بینی و با دکمه «مشاهده / پاسخ» وارد
-              صفحه پاسخ‌دهی هر سؤال می‌شوی.
+              سؤال‌ها را جستجو و فیلتر کن، پاسخ بده، و لینک پاسخ عمومی را سریع باز کن.
             </p>
           </div>
 
-          <div className="grid grid-cols-4 gap-3 text-center">
-            <div className="rounded-3xl bg-white px-5 py-4 shadow-sm">
+          <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-3 lg:grid-cols-6">
+            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
               <div className="text-2xl font-black text-emerald-950">{questions.length}</div>
-              <div className="mt-1 text-xs text-slate-500">کل سؤال‌ها</div>
+              <div className="mt-1 text-xs text-slate-500">کل</div>
             </div>
-            <div className="rounded-3xl bg-white px-5 py-4 shadow-sm">
+            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
               <div className="text-2xl font-black text-emerald-950">{newCount}</div>
               <div className="mt-1 text-xs text-slate-500">جدید</div>
             </div>
-            <div className="rounded-3xl bg-white px-5 py-4 shadow-sm">
+            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
+              <div className="text-2xl font-black text-emerald-950">{reviewingCount}</div>
+              <div className="mt-1 text-xs text-slate-500">در بررسی</div>
+            </div>
+            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
               <div className="text-2xl font-black text-emerald-950">{urgentCount}</div>
               <div className="mt-1 text-xs text-slate-500">فوری</div>
             </div>
-            <div className="rounded-3xl bg-white px-5 py-4 shadow-sm">
+            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
               <div className="text-2xl font-black text-emerald-950">{answeredCount}</div>
               <div className="mt-1 text-xs text-slate-500">پاسخ‌دار</div>
+            </div>
+            <div className="rounded-3xl bg-white px-4 py-4 shadow-sm">
+              <div className="text-2xl font-black text-red-700">{expiredCount}</div>
+              <div className="mt-1 text-xs text-slate-500">منقضی</div>
             </div>
           </div>
         </header>
 
-        <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-900">
-          این پنل هنوز احراز هویت ندارد. تا قبل از اضافه کردن لاگین ادمین، آن را
-          فقط برای تست داخلی استفاده کن یا مسیر را عمومی منتشر نکن.
+        <form
+          method="get"
+          className="mt-8 grid gap-3 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_220px_auto_auto]"
+        >
+          <input
+            name="q"
+            defaultValue={query}
+            placeholder="جستجو در نام، تماس، متن سؤال یا موضوع..."
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-emerald-800 focus:bg-white"
+          />
+          <select
+            name="status"
+            defaultValue={statusFilter}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-emerald-800 focus:bg-white"
+          >
+            <option value="all">همه وضعیت‌ها</option>
+            <option value="new">جدید</option>
+            <option value="reviewing">در حال بررسی</option>
+            <option value="answered">پاسخ داده‌شده</option>
+            <option value="archived">آرشیو</option>
+          </select>
+          <button className="rounded-2xl bg-emerald-950 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-900">
+            اعمال فیلتر
+          </button>
+          <a
+            href="/admin/questions"
+            className="rounded-2xl border border-slate-200 px-6 py-3 text-center text-sm font-bold text-slate-600 hover:bg-slate-50"
+          >
+            پاک کردن
+          </a>
+        </form>
+
+        <div className="mt-4 text-sm text-slate-500">
+          نمایش {filteredQuestions.length} مورد از {questions.length} سؤال آخر
         </div>
 
         {error && (
@@ -161,12 +296,13 @@ export default async function AdminQuestionsPage() {
           </div>
         )}
 
-        <section className="mt-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <section className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-right text-sm">
               <thead className="bg-emerald-950 text-white">
                 <tr>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">عملیات</th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">لینک پاسخ</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">تاریخ</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">کاربر</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">تماس</th>
@@ -174,18 +310,19 @@ export default async function AdminQuestionsPage() {
                   <th className="whitespace-nowrap px-5 py-4 font-bold">مبلغ</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">فوریت</th>
                   <th className="whitespace-nowrap px-5 py-4 font-bold">وضعیت</th>
+                  <th className="whitespace-nowrap px-5 py-4 font-bold">اعتبار پاسخ</th>
                   <th className="min-w-96 px-5 py-4 font-bold">متن سؤال</th>
                 </tr>
               </thead>
               <tbody>
-                {questions.length === 0 && !error ? (
+                {filteredQuestions.length === 0 && !error ? (
                   <tr>
-                    <td colSpan={9} className="px-5 py-10 text-center text-slate-500">
-                      هنوز سؤالی ثبت نشده است.
+                    <td colSpan={11} className="px-5 py-10 text-center text-slate-500">
+                      موردی با این فیلتر پیدا نشد.
                     </td>
                   </tr>
                 ) : (
-                  questions.map((question, index) => (
+                  filteredQuestions.map((question, index) => (
                     <tr
                       key={question.id ?? index}
                       className="border-b border-slate-100 align-top last:border-b-0 hover:bg-slate-50"
@@ -200,6 +337,20 @@ export default async function AdminQuestionsPage() {
                           </a>
                         ) : (
                           "—"
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4">
+                        {isAnswered(question) && question.answer_token ? (
+                          <a
+                            href={`/answers/${question.answer_token}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-50"
+                          >
+                            باز کردن
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">—</span>
                         )}
                       </td>
                       <td className="whitespace-nowrap px-5 py-4 text-slate-500">
@@ -221,9 +372,16 @@ export default async function AdminQuestionsPage() {
                         {getLabel(urgencyLabels, question.urgency)}
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                          {getLabel(statusLabels, question.status)}
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(question)}`}>
+                          {isExpired(question)
+                            ? "منقضی"
+                            : isAnswered(question)
+                              ? "پاسخ داده شد"
+                              : getLabel(statusLabels, question.status)}
                         </span>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4 text-slate-600">
+                        {getExpiryLabel(question)}
                       </td>
                       <td className="px-5 py-4 leading-7 text-slate-700">
                         <pre className="max-w-xl whitespace-pre-wrap break-words font-sans">
