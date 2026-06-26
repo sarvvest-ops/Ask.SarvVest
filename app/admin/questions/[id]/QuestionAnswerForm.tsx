@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type QuestionAnswerFormProps = {
   questionId: string;
@@ -25,10 +25,11 @@ export default function QuestionAnswerForm({
   const [isError, setIsError] = useState(false);
 
   const publicAnswerPath = answerToken ? `/answers/${answerToken}` : "";
+  const [publicAnswerUrl, setPublicAnswerUrl] = useState(publicAnswerPath);
 
-  const publicAnswerUrl = useMemo(() => {
-    if (!publicAnswerPath || typeof window === "undefined") return publicAnswerPath;
-    return `${window.location.origin}${publicAnswerPath}`;
+  useEffect(() => {
+    if (!publicAnswerPath) return;
+    setPublicAnswerUrl(`${window.location.origin}${publicAnswerPath}`);
   }, [publicAnswerPath]);
 
   async function handleSubmit(targetStatus: string) {
